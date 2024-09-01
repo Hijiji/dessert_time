@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ReviewRepository } from './review.repository';
 import { ReviewCategoryDto } from './dto/review.category.dto';
 import { LikeDto } from './dto/like.dto';
@@ -12,6 +12,7 @@ import * as path from 'path';
 import { ReviewImgIdDto } from './dto/reviewimg.id.dto';
 import { UpdateReviewImgListDto } from './dto/reviewimg.list.change.dto';
 import { IngredientNameDto } from './dto/ingredient.name.dto';
+import { Transactional } from 'typeorm-transactional';
 
 @Injectable()
 export class ReviewService {
@@ -24,8 +25,11 @@ export class ReviewService {
    */
   async findReviewCategoryList(reviewCategoryDto: ReviewCategoryDto) {
     try {
-      if (reviewCategoryDto.selectedOrder === 'D') return await this.reviewRepository.findReviewCategoryDateList(reviewCategoryDto);
-      else if (reviewCategoryDto.selectedOrder === 'L') return await this.reviewRepository.findReviewCategoryLikeList(reviewCategoryDto);
+      let result;
+      if (reviewCategoryDto.selectedOrder === 'D') result = await this.reviewRepository.findReviewCategoryDateList(reviewCategoryDto);
+      else if (reviewCategoryDto.selectedOrder === 'L') result = await this.reviewRepository.findReviewCategoryLikeList(reviewCategoryDto);
+      console.log('result ::::::::::::', result);
+      return result;
     } catch (error) {
       throw error;
     }
@@ -36,20 +40,25 @@ export class ReviewService {
    */
   async postLikeItem(likeDto: LikeDto) {
     try {
-      if (likeDto.isLike === false) {
-        const isLikedData = await this.reviewRepository.findLikeId(likeDto);
-        if (isLikedData) {
-          await this.reviewRepository.deleteReviewLike(isLikedData.likeId);
-          await this.reviewRepository.decrementTotalLikeNum(likeDto);
-        }
-      } else if (likeDto.isLike === true) {
-        const isMemberData = await this.reviewRepository.findMemberId(likeDto);
-        const isReviewData = await this.reviewRepository.findReviewId(likeDto);
+      const isMemberData = await this.reviewRepository.findMemberId(likeDto);
+      const isReviewData = await this.reviewRepository.findReviewId(likeDto);
 
-        if (isMemberData && isReviewData) {
+      if (isMemberData && isReviewData) {
+        if (likeDto.isLike === false) {
+          const isLikedData = await this.reviewRepository.findLikeId(likeDto);
+          if (isLikedData) {
+            await this.reviewRepository.deleteReviewLike(isLikedData.likeId);
+            await this.reviewRepository.decrementTotalLikeNum(likeDto);
+          }
+        } else if (likeDto.isLike === true) {
           await this.reviewRepository.insertReviewLike(likeDto);
           await this.reviewRepository.incrementTotalLikeNum(likeDto);
         }
+      } else {
+        throw new BadRequestException('존재하지 않는 정보', {
+          cause: new Error(),
+          description: '입력하신 리뷰 혹은 회원이 존재하지 않습니다',
+        });
       }
     } catch (error) {
       throw error;
@@ -163,11 +172,43 @@ export class ReviewService {
    */
   async getGenerableReview(reviewIdDto: ReviewIdDto) {
     try {
-      const result = await this.reviewRepository.findGenerableReview(reviewIdDto);
-      //result['ingredientList'] = await this.reviewRepository.lll(result.reviewIngredients);
+      const reviewData = await this.reviewRepository.findGenerableReview(reviewIdDto);
+      const resultData = {};
+      if (reviewData) {
+        resultData['reviewId'] = reviewData.reviewId;
+        resultData['content'] = reviewData.content;
+        resultData['menuName'] = reviewData.menuName;
+        resultData['storeName'] = reviewData.storeName;
+        resultData['score'] = reviewData.score;
+        resultData['dessertCategory'] = { dessertCategoryId: reviewData.dessertCategory.dessertCategoryId, dessertName: reviewData.dessertCategory.dessertName };
 
-      console.log('result ::::::::::::;', result);
-      return result;
+        if (reviewData.reviewImg.length > 0) {
+          const reviewImg = reviewData.reviewImg.map((imgData) => {
+            return {
+              reviewImgId: imgData.reviewImgId,
+              middlepath: imgData.middlepath,
+              path: imgData.path,
+              extention: imgData.extention,
+              imgName: imgData.imgName,
+              isMain: imgData.isMain,
+              num: imgData.num,
+            };
+          });
+          resultData['reviewImg'] = reviewImg;
+        }
+
+        if (reviewData.reviewIngredients.length > 0) {
+          const reviewIngredients = reviewData.reviewIngredients.map((ingredientData) => {
+            return {
+              reviewIngredientId: ingredientData.reviewIngredientId,
+              ingredientId: ingredientData.ingredient.ingredientId,
+              ingredientName: ingredientData.ingredient.ingredientName,
+            };
+          });
+          resultData['reviewIngredients'] = reviewIngredients;
+        }
+      }
+      return resultData;
     } catch (error) {
       throw error;
     }
@@ -178,6 +219,7 @@ export class ReviewService {
    * @param reviewUpdateDto
    * @returns
    */
+  @Transactional()
   async patchGenerableReview(reviewUpdateDto: ReviewUpdateDto) {
     try {
       //1. 재료 삭제
@@ -202,9 +244,9 @@ export class ReviewService {
    * @param file
    * @returns
    */
+  @Transactional()
   async postReviewImg(reviewImgSaveDto: ReviewImgSaveDto, file) {
     try {
-      console.log('file :::::', file);
       const extention = path.extname(file.originalname); // 파일 확장자 추출
       const imgName = path.basename(file.originalname, extention); // 파일 이름
       const lastpath = file.originalname;
@@ -214,16 +256,17 @@ export class ReviewService {
         path: lastpath,
       };
       const savedData = await this.reviewRepository.insertReviewImg(reviewImgSaveDto, fileData);
-      console.log('저장후 반환 데이터 :::::::::::::', savedData);
       return { reviewImgId: savedData['raw']['reviewImgId'] };
     } catch (error) {
       throw error;
     }
   }
+
   /**
    * 리뷰이미지 하나 삭제
    * @param reviewImgIdDto
    */
+  @Transactional()
   async deleteReviewImg(reviewImgIdDto: ReviewImgIdDto) {
     try {
       await this.reviewRepository.deleteReviewImg(reviewImgIdDto);
@@ -236,6 +279,7 @@ export class ReviewService {
    * 리뷰이미지 순서/메인 변경
    * @param updateReviewImgListDto
    */
+  @Transactional()
   async updateReviewImg(updateReviewImgListDto: UpdateReviewImgListDto) {
     try {
       const entitiesToSave = [];
