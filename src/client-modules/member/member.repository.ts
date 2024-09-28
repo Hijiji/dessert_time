@@ -10,6 +10,14 @@ import { Point } from 'src/config/entities/point.entity';
 import { MemberAlarmDto } from './dto/member.alarm.dto';
 import { MemberAdDto } from './dto/member.add.dto';
 import { PointHistory } from 'src/config/entities/point.history.entity';
+import { Notice } from 'src/config/entities/notice.entity';
+import { NoticeListDto } from './dto/notice.list.dto';
+import { NoticeDto } from './dto/notice.dto';
+import { ProfileImg } from 'src/config/entities/profile.img.entity';
+import { UserInterestDessert } from 'src/config/entities/user.interest.dessert.entity';
+import { DessertCategory } from 'src/config/entities/dessert.category.entity';
+import { NickNameDto } from './dto/nickname.dto';
+import { MemberUpdateDto } from './member.update.dto';
 
 @Injectable()
 export class MemberRepository {
@@ -22,6 +30,8 @@ export class MemberRepository {
     private pointRepository: Repository<Point>,
     @InjectRepository(PointHistory)
     private pointHistory: Repository<PointHistory>,
+    @InjectRepository(Notice)
+    private noticeRepository: Repository<Notice>,
   ) {}
 
   /**
@@ -94,6 +104,45 @@ export class MemberRepository {
   async findUserNickNameOne(memberIdDto: MemberIdDto) {
     return await this.memberRepository.findOne({ select: { nickName: true }, where: { memberId: memberIdDto.memberId } });
   }
+
+  /**
+   * 사용자정보 조회
+   * @param memberIdDto
+   * @returns
+   */
+  async findMemberOne(memberIdDto: MemberIdDto) {
+    return await this.memberRepository
+      .createQueryBuilder('m')
+      .leftJoin(ProfileImg, 'profileImg', 'profileImg.memberMemberId = m.memberId') // 프로필 이미지와의 JOIN
+      .leftJoin(UserInterestDessert, 'uids', 'uids.memberMemberId = m.memberId') // user_interest_dessert와의 JOIN
+      .leftJoin(DessertCategory, 'dc', 'dc.dessertCategoryId = uids.dcDessertCategoryId') // dessert_category와의 JOIN
+      .select([
+        'm.memberId AS "memberId"',
+        'm.gender AS "gender"',
+        'm.nickName AS "nickName"',
+        'm.birthYear AS "birthYear"',
+        'm.firstCity AS "firstCity"',
+        'm.secondaryCity AS "secondaryCity"',
+        'm.thirdCity AS "thirdCity"',
+        'profileImg.middlePath AS "profileImgMiddlePath"',
+        'profileImg.profileImgId AS "profileImgId"',
+        'profileImg.path AS "profileImgPath"',
+        'profileImg.extension AS "profileImgExtension"',
+        'dc.dessertCategoryId AS "dessertCategoryId"',
+        'dc.dessertName AS "dessertName"',
+      ])
+      .where('m.memberId = :memberId', { memberId: memberIdDto.memberId }) // 특정 회원 ID 조건
+      .getRawMany();
+  }
+
+  /**
+   * 닉네임 존재여부 확인
+   * @param nickNameDto
+   */
+  async isUsableNickName(nickNameDto: NickNameDto) {
+    return await this.memberRepository.find({ select: { nickName: true }, where: { nickName: nickNameDto.nickName } });
+  }
+
   /**
    * 사용자가 작성한 리뷰 카운트
    * @param memberIdDto
@@ -153,5 +202,60 @@ export class MemberRepository {
       .where('m.memberId = :memberId', { memberId: memberIdDto.memberId })
       .andWhere('ph.createdDate BETWEEN :startDate AND :endDate', { startDate, endDate })
       .getRawOne();
+  }
+
+  /**
+   * 보유밀 상세내역
+   * @param memberIdDto
+   * @returns
+   */
+  async findPointHisoryList(memberIdDto: MemberIdDto) {
+    return await this.pointHistory.find({
+      select: { createdDate: true, newPoint: true },
+      relations: ['review'],
+      where: { member: { memberId: memberIdDto.memberId } },
+      order: { createdDate: 'DESC' },
+    });
+  }
+
+  /**
+   * 공지/이벤트 목록 조회
+   * @param noticeListDto
+   * @returns
+   */
+  async findNoticeList(noticeListDto: NoticeListDto) {
+    return await this.noticeRepository.find({
+      select: { title: true, createdDate: true, noticeId: true },
+      where: { isNotice: noticeListDto.isNotice },
+      order: { createdDate: 'DESC' },
+    });
+  }
+
+  /**
+   * 공지/이벤트 하나 조회
+   * @param noticeDto
+   * @returns
+   */
+  async findNoticeOne(noticeDto: NoticeDto) {
+    return await this.noticeRepository.findOne({ select: { content: true, title: true, createdDate: true }, where: { noticeId: noticeDto.noticeId, isNotice: noticeDto.isNotice } });
+  }
+
+  /**
+   * 사용자 정보 수정하기
+   * @param memberUpdateDto
+   * @returns
+   */
+  async saveMember(memberUpdateDto: MemberUpdateDto) {
+    return await this.memberRepository.update(
+      { memberId: memberUpdateDto.memberId },
+      {
+        birthYear: memberUpdateDto.birthYear,
+        gender: memberUpdateDto.gender,
+        firstCity: memberUpdateDto.firstCity,
+        secondaryCity: memberUpdateDto.secondaryCity,
+        thirdCity: memberUpdateDto.thirdCity,
+        nickName: memberUpdateDto.nickName,
+      },
+    );
   }
 }

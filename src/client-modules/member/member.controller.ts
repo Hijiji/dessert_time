@@ -7,6 +7,10 @@ import { MemberIdDto } from './dto/member.id';
 import { MemberDeleteDto } from './dto/member.delete.dto';
 import { MemberAdDto } from './dto/member.add.dto';
 import { MemberAlarmDto } from './dto/member.alarm.dto';
+import { NoticeListDto } from './dto/notice.list.dto';
+import { NoticeDto } from './dto/notice.dto';
+import { NickNameDto } from './dto/nickname.dto';
+import { MemberUpdateDto } from './member.update.dto';
 
 @ApiTags('Member')
 @Controller('member')
@@ -29,6 +33,24 @@ export class MemberController {
   @Get('/my-page/:memberId')
   async myPageOverview(@Param() memberIdDto: MemberIdDto) {
     return await this.memberService.myPageOverview(memberIdDto);
+  }
+
+  @ApiOperation({ summary: '마이페이지 - 사용자 정보 조회' })
+  @Get('/my-page/member/:memberId')
+  async getMemberOne(@Query() memberIdDto: MemberIdDto) {
+    return await this.memberService.getMemberOne(memberIdDto);
+  }
+
+  @ApiOperation({ summary: '마이페이지 - 닉네임 중복체크 //false: 사용불가' })
+  @Get('/my-page/nickname/:nickname')
+  async isUsableNickName(@Query() nickNameDto: NickNameDto) {
+    return await this.memberService.isUsableNickName(nickNameDto);
+  }
+
+  @ApiOperation({ summary: '마이페이지 - 사용자 정보 수정하기' })
+  @Patch('/my-page')
+  async patchMember(@Query() memberUpdateDto: MemberUpdateDto) {
+    return await this.memberService.patchMember(memberUpdateDto);
   }
 
   @ApiOperation({ summary: '마이페이지 - 설정 - 광고,알람 수신여부 조회' })
@@ -65,5 +87,23 @@ export class MemberController {
   @Get('my-page/point/:memberId')
   async getPoint(@Param() memberIdDto: MemberIdDto) {
     return await this.memberService.getPoint(memberIdDto);
+  }
+
+  @ApiOperation({ summary: '보유밀 상세내역' })
+  @Get('my-page/point/list/:memberId')
+  async getPointHisoryList(@Query() memberIdDto: MemberIdDto) {
+    return await this.memberService.getPointHisoryList(memberIdDto);
+  }
+
+  @ApiOperation({ summary: '공지/이벤트 목록 조회' })
+  @Get('my-page/notice/list/:isNotice')
+  async getNoticeList(@Query() noticeListDto: NoticeListDto) {
+    return await this.memberService.getNoticeList(noticeListDto);
+  }
+
+  @ApiOperation({ summary: '공지/이벤트 목록 조회' })
+  @Get('my-page/notice/:isNotice/:noticeId')
+  async getNoticeOne(@Query() noticeDto: NoticeDto) {
+    return await this.memberService.getNoticeOne(noticeDto);
   }
 }

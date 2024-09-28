@@ -8,6 +8,11 @@ import { MemberDeletionEnum } from './enum/member.deletion.enum';
 import { MemberDeleteDto } from './dto/member.delete.dto';
 import { MemberAlarmDto } from './dto/member.alarm.dto';
 import { MemberAdDto } from './dto/member.add.dto';
+import { NoticeListDto } from './dto/notice.list.dto';
+import { NoticeDto } from './dto/notice.dto';
+import { NickNameDto } from './dto/nickname.dto';
+import { MemberUpdateDto } from './member.update.dto';
+import { Member } from 'src/config/entities/member.entity';
 
 @Injectable()
 export class MemberService {
@@ -74,6 +79,89 @@ export class MemberService {
         usersReviewCount,
         usersTotalPoint: usersTotalPoint[0].totalPoint,
       };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 사용자 정보 조회
+   * @param memberIdDto
+   * @returns
+   */
+  @Transactional()
+  async getMemberOne(memberIdDto: MemberIdDto) {
+    try {
+      const memberData = await this.memberRepository.findMemberOne(memberIdDto);
+      const groupByMemberId = (memberData) => {
+        return memberData.reduce((acc, current) => {
+          // 이미 존재하는 memberId인지 확인
+          const existingMember = acc.find((item) => item.memberId === current.memberId);
+
+          if (existingMember) {
+            // 같은 memberId가 있을 경우 dessertCategory와 dessertName을 추가
+            existingMember.desserts.push({
+              dessertCategoryId: current.dessertCategoryId,
+              dessertName: current.dessertName,
+            });
+          } else {
+            // 새로운 memberId일 경우 새로운 객체를 추가
+            acc.push({
+              memberId: current.memberId,
+              gender: current.gender,
+              nickName: current.nickName,
+              birthYear: current.birthYear,
+              firstCity: current.firstCity,
+              secondaryCity: current.secondaryCity,
+              thirdCity: current.thirdCity,
+              profileImgMiddlePath: current.profileImgMiddlePath,
+              profileImgId: current.profileImgId,
+              profileImgPath: current.profileImgPath,
+              profileImgExtension: current.profileImgExtension,
+              desserts: [
+                {
+                  dessertCategoryId: current.dessertCategoryId,
+                  dessertName: current.dessertName,
+                },
+              ],
+            });
+          }
+          return acc;
+        }, []);
+      };
+
+      const groupedData = groupByMemberId(memberData);
+      return groupedData;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 닉네임 사용여부 확인
+   * @param nickNameDto
+   * @returns
+   */
+  @Transactional()
+  async isUsableNickName(nickNameDto: NickNameDto) {
+    try {
+      let result = { usable: true };
+      const isUsableNickName = await this.memberRepository.isUsableNickName(nickNameDto);
+      if (isUsableNickName.length > 0) result.usable = false;
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 사용자 정보 변경
+   * @param memberUpdateDto
+   */
+  @Transactional()
+  async patchMember(memberUpdateDto: MemberUpdateDto) {
+    try {
+      await this.memberRepository.saveMember(memberUpdateDto);
     } catch (error) {
       throw error;
     }
@@ -165,6 +253,58 @@ export class MemberService {
         thisMonthPoint,
         totalPoint: totalPoint[0].totalPoint,
       };
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 보유밀 상세내역
+   * @param memberIdDto
+   */
+  @Transactional()
+  async getPointHisoryList(memberIdDto: MemberIdDto) {
+    try {
+      const pointHistoryList = await this.memberRepository.findPointHisoryList(memberIdDto);
+      const result = pointHistoryList.map((data) => {
+        const createdDate: string = data.createdDate.toISOString().substring(0, 10);
+        return {
+          menuName: data.review?.menuName,
+          point: data.newPoint,
+          createdDate,
+        };
+      });
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 공지/이벤트 목록조회
+   * @param noticeListDto
+   * @returns
+   */
+  @Transactional()
+  async getNoticeList(noticeListDto: NoticeListDto) {
+    try {
+      const result = await this.memberRepository.findNoticeList(noticeListDto);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 공지/이벤트 하나 조회
+   * @param noticeDto
+   * @returns
+   */
+  @Transactional()
+  async getNoticeOne(noticeDto: NoticeDto) {
+    try {
+      const result = await this.memberRepository.findNoticeOne(noticeDto);
       return result;
     } catch (error) {
       throw error;
