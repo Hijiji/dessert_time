@@ -14,7 +14,6 @@ export class Review {
   @PrimaryGeneratedColumn()
   reviewId: number;
 
-  @Column({ nullable: true })
   totalLikedNum: number;
 
   @Column({ nullable: true })
