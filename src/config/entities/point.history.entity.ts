@@ -11,7 +11,7 @@ export class PointHistory {
   @Column()
   newPoint: number;
 
-  @Column({ nullable: true, default: PointType.REVIEW })
+  @Column({ nullable: false, default: PointType.REVIEW })
   pointType: PointType;
 
   @CreateDateColumn()
