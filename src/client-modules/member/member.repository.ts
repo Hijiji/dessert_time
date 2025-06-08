@@ -286,9 +286,7 @@ export class MemberRepository {
     const { cursor, limit } = noticeListDto;
     const selectFields: any = { title: true, createdDate: true, noticeId: true };
 
-    if (noticeListDto.noticeType == NoticeType.FAQ) {
-      selectFields.content = true;
-    }
+    if (noticeListDto.noticeType == NoticeType.FAQ) selectFields.content = true;
     const items = await this.noticeRepository.find({
       select: selectFields,
       where: { noticeType: noticeListDto.noticeType, ...(cursor ? { noticeId: LessThan(Number(cursor)) } : {}) },
