@@ -4,6 +4,9 @@ import { PointType } from '../../../common/enum/point.enum';
 
 export class UpdateAdminPointDto {
   constructor(newPoint: number, pointType: PointType) {
+    if (newPoint === null || newPoint === undefined || isNaN(newPoint)) {
+      throw new Error('newPoint는 필수값입니다.');
+    }
     this.newPoint = newPoint;
     this.pointType = pointType;
   }

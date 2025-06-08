@@ -450,7 +450,9 @@ export class ReviewService {
         await this.saveIngredient(reviewUpdateDto);
       }
       const updateAdminPointDto = new UpdateAdminPointDto(5, PointType.REVIEW);
-      await this.adminPointService.processInsertUpdatePoint('save', reviewUpdateDto.memberId, updateAdminPointDto, reviewUpdateDto.reviewId);
+      console.log('updateAdminPointDto ::::::::::::::', updateAdminPointDto);
+      await this.adminPointService.processUpsertPointByReview(reviewUpdateDto.memberId, updateAdminPointDto, reviewUpdateDto.reviewId);
+
       return;
     } catch (error) {
       throw error;

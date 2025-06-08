@@ -60,4 +60,30 @@ export class AdminPointService {
     // PointHistory 에 신규 포인트 내역 적재
     return pointResult && pointHistoryResult;
   }
+
+  /**
+   * 후기 작성 시 포인트 지급 및 히스토리 upsert 처리
+   */
+  @Transactional()
+  public async processUpsertPointByReview(memberId: number, updateAdminPointDto: UpdateAdminPointDto, reviewId: number) {
+    const point = await this.adminPointRepository.findOneByMemberId(memberId);
+    let pointResult: boolean = false;
+    if (isNaN(updateAdminPointDto.newPoint) || updateAdminPointDto.newPoint === null || updateAdminPointDto.newPoint === undefined) {
+      console.log('오류발생');
+    }
+    if (!point) {
+      console.log('updateAdminPointDto ::::::::::::::', updateAdminPointDto);
+
+      pointResult = await this.adminPointRepository.insert(memberId, updateAdminPointDto.newPoint);
+    } else {
+      console.log('updateAdminPointDto ::::::::::::::', updateAdminPointDto);
+
+      const totalPoint = point.totalPoint + updateAdminPointDto.newPoint;
+      pointResult = await this.adminPointRepository.update(memberId, totalPoint);
+    }
+
+    await this.adminPointHistoryService.upsert(memberId, updateAdminPointDto, reviewId);
+
+    return pointResult;
+  }
 }
