@@ -434,16 +434,16 @@ export class ReviewService {
   @Transactional()
   async patchGenerableReview(reviewUpdateDto: ReviewUpdateDto) {
     try {
-      let ingredientList = [];
-      if (reviewUpdateDto.reviewId) {
-        ingredientList = await this.reviewRepository.findReviewIngredient(reviewUpdateDto);
-        //1. 재료 삭제
-        if (ingredientList.length > 0) await this.reviewRepository.deleteReviewIngredient(reviewUpdateDto);
-        //2. 재료 저장
-        await this.saveIngredient(reviewUpdateDto);
-      }
+      // let ingredientList = [];
+      // if (reviewUpdateDto.reviewId) {
+      //   ingredientList = await this.reviewRepository.findReviewIngredient(reviewUpdateDto);
+      //   //1. 재료 삭제
+      //   if (ingredientList.length > 0) await this.reviewRepository.deleteReviewIngredient(reviewUpdateDto);
+      //   //2. 재료 저장
+      //   await this.saveIngredient(reviewUpdateDto);
+      // }
 
-      //3. 리뷰 저장
+      //리뷰 저장
       const newReview = await this.reviewRepository.updateGenerableReview(reviewUpdateDto);
       if (!reviewUpdateDto.reviewId) {
         reviewUpdateDto.reviewId = newReview.reviewId;
