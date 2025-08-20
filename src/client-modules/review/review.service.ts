@@ -453,7 +453,7 @@ export class ReviewService {
       console.log('updateAdminPointDto ::::::::::::::', updateAdminPointDto);
       await this.adminPointService.processUpsertPointByReview(reviewUpdateDto.memberId, updateAdminPointDto, reviewUpdateDto.reviewId);
 
-      return;
+      return { reviewId: newReview.reviewId };
     } catch (error) {
       throw error;
     }
