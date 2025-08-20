@@ -414,7 +414,8 @@ export class ReviewRepository {
   async updateGenerableReview(reviewUpdateDto: any) {
     const saveReview = new Review();
     saveReview.content = reviewUpdateDto.content;
-    saveReview.status = reviewUpdateDto.status == 'SAVED' ? ReviewStatus.SAVED : ReviewStatus.INIT;
+    //    saveReview.status = reviewUpdateDto.status == 'SAVED' ? ReviewStatus.SAVED : ReviewStatus.INIT;
+    saveReview.status = ReviewStatus.SAVED;
     saveReview.menuName = reviewUpdateDto.menuName;
     saveReview.score = reviewUpdateDto.score;
     saveReview.storeName = reviewUpdateDto.storeName;
