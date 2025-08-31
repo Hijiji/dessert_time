@@ -144,7 +144,7 @@ export class ReviewController {
       },
     },
   })
-  @UseInterceptors(FileInterceptor('file', multerOptionsFactory()))
+  @UseInterceptors(FileInterceptor('file', multerOptionsFactory('reviewImg')))
   @ApiOperation({ summary: '리뷰이미지 하나 저장' })
   @Post('generable/img/:reviewId/:num/:isMain')
   async postReviewImg(@UploadedFile() file: Express.Multer.File, @Param() reviewImgSaveDto: ReviewImgSaveDto) {

@@ -477,6 +477,7 @@ export class ReviewRepository {
       where: { reviewImg: { reviewId: reviewImgSaveDto.reviewId } },
     });
   }
+
   /**
    * 리뷰 이미지 파일 하나 저장
    * @param reviewImgSaveDto

@@ -1,6 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { Response } from 'express';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { SignInDto } from './dto/signin.dto';
 import { MemberService } from './member.service';
 import { UserValidationDto } from './dto/login.dto';
@@ -15,6 +15,8 @@ import { MemberUpdateDto } from './member.update.dto';
 import { MemberPointListDto } from './dto/member.pointlist.dto';
 import { MemberIdPagingDto } from './dto/member.id.paging.dto';
 import { JwtAuthGuard } from 'src/config/auth/jwt/jwt.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { multerOptionsFactory } from 'src/config/file/multer.option.factory';
 
 @ApiTags('Member')
 @Controller('member')
@@ -63,6 +65,27 @@ export class MemberController {
   @Patch('/my-page')
   async patchMember(@Query() memberUpdateDto: MemberUpdateDto) {
     return await this.memberService.patchMember(memberUpdateDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file', multerOptionsFactory('useImg')))
+  @ApiOperation({ summary: '마이페이지 - 사용자 이미지 수정하기' })
+  @Patch('/my-page/img/:memberId')
+  async patchMemberImg(@UploadedFile() file: Express.Multer.File, @Param() memberIdDto: MemberIdDto) {
+    return await this.memberService.patchMemberImg(file, memberIdDto);
   }
 
   @UseGuards(JwtAuthGuard)

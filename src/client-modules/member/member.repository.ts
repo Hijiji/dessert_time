@@ -30,6 +30,8 @@ export class MemberRepository {
   constructor(
     @InjectRepository(Member)
     private memberRepository: Repository<Member>,
+    @InjectRepository(ProfileImg)
+    private profileImgRepository: Repository<ProfileImg>,
     @InjectRepository(Review)
     private reviewRepository: Repository<Review>,
     @InjectRepository(Point)
@@ -322,6 +324,35 @@ export class MemberRepository {
         nickName: memberUpdateDto.nickName,
       },
     );
+  }
+
+  /**
+   * 프로필 이미지 파일 하나 수정
+   * @param reviewImgSaveDto
+   * @param file
+   */
+  async upsertMemberImg(file, memberIdDto: MemberIdDto) {
+    const existingImg = await this.profileImgRepository.findOne({
+      where: { member: { memberId: memberIdDto.memberId } },
+    });
+
+    if (existingImg) {
+      // update
+      existingImg.path = file.path;
+      existingImg.extension = file.extention;
+      existingImg.middlePath = 'useImg';
+      existingImg.imgName = file.imgName;
+      return await this.profileImgRepository.save(existingImg);
+    } else {
+      // insert
+      return await this.profileImgRepository.save({
+        middlePath: 'useImg',
+        path: file.path,
+        extension: file.extention,
+        imgName: file.imgName,
+        member: { memberId: memberIdDto.memberId },
+      });
+    }
   }
 
   /**
