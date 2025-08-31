@@ -27,7 +27,7 @@ export class FileTransController {
       },
     },
   })
-  @UseInterceptors(FilesInterceptor('files', 30, multerOptionsFactory()))
+  @UseInterceptors(FilesInterceptor('files', 30, multerOptionsFactory('reviewImg')))
   async uploadFiles(@UploadedFiles() files: Array<Express.Multer.File>) {
     return this.fileService.uploadFiles(files);
   }
@@ -46,7 +46,7 @@ export class FileTransController {
       },
     },
   })
-  @UseInterceptors(FileInterceptor('file', multerOptionsFactory()))
+  @UseInterceptors(FileInterceptor('file', multerOptionsFactory('reviewImg')))
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
     return this.fileService.uploadFile(file);
   }

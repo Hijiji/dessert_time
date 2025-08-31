@@ -16,6 +16,7 @@ import { MemberPointListDto } from './dto/member.pointlist.dto';
 import { MemberDeletion } from '../../common/enum/member.enum';
 import { MemberIdPagingDto } from './dto/member.id.paging.dto';
 import { AuthService } from 'src/config/auth/auth.service';
+import * as path from 'path';
 
 @Injectable()
 export class MemberService {
@@ -208,6 +209,29 @@ export class MemberService {
         await this.memberRepository.deletePickCategoryList(memberUpdateDto);
         await this.memberRepository.insertPickCategoryList(pickDessertList);
       }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 사용자 이미지 수정
+   * @param file
+   * @param memberUpdateDto
+   */
+  @Transactional()
+  async patchMemberImg(file, memberIdDto: MemberIdDto) {
+    try {
+      const extention = path.extname(file.originalname); // 파일 확장자 추출
+      const imgName = path.basename(file.originalname, extention); // 파일 이름
+      const lastpath = file.filename;
+      const fileData = {
+        imgName,
+        extention,
+        path: lastpath,
+      };
+      const savedData = await this.memberRepository.upsertMemberImg(fileData, memberIdDto);
+      return { memberImgId: savedData['raw']?.[0]?.profileImgId };
     } catch (error) {
       throw error;
     }

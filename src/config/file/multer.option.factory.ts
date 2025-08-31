@@ -8,7 +8,7 @@ import { v1 as uuid } from 'uuid';
 // 폴더가 존재하지 않으면 폴더를 생성하고, 존재하면 생성하지 않음
 const mkdir = (directory: string) => {
   try {
-    const directories = ['reviewImg']; //process.env.REVIEW_IMG_MIDDLE_PATH
+    const directories = ['reviewImg', 'useImg']; //process.env.REVIEW_IMG_MIDDLE_PATH
 
     if (!fs.existsSync(path.join(String(process.cwd()), directory))) {
       fs.mkdirSync(path.join(String(process.cwd()), directory));
@@ -25,16 +25,12 @@ const mkdir = (directory: string) => {
 
 mkdir('uploads'); //process.env.ROOT_PATH
 
-export const multerOptionsFactory = (): MulterOptions => {
-  const destinationMappings = {
-    reviewImg: 'reviewImg', //process.env.REVIEW_IMG_MIDDLE_PATH,
-  };
+export const multerOptionsFactory = (type: 'reviewImg' | 'useImg'): MulterOptions => {
   return {
     storage: multer.diskStorage({
       destination(req, file, cd) {
         //const prefix = file.originalname.slice(0, 5);
-        const destination = destinationMappings['reviewImg']; // || process.env.dumpfile;
-        cd(null, path.join(String(process.cwd()), 'uploads', String(destination)));
+        cd(null, path.join(String(process.cwd()), 'uploads', type));
       },
 
       filename(req, file, cd) {

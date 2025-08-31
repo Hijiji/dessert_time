@@ -1,12 +1,4 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
-  OneToOne,
-  JoinColumn,
-} from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToOne, JoinColumn } from 'typeorm';
 import { Member } from './member.entity';
 
 @Entity()
@@ -35,7 +27,7 @@ export class ProfileImg {
   @UpdateDateColumn()
   updateDate: Date;
 
-  @OneToOne(() => Member, (member) => member.profileImg)
+  @OneToOne(() => Member, (member) => member.profileImg, { onDelete: 'CASCADE' })
   @JoinColumn()
   member: Member;
 }
