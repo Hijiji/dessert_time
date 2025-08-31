@@ -17,6 +17,7 @@ import { MemberIdPagingDto } from './dto/review.dto';
 import { JwtAuthGuard } from 'src/config/auth/jwt/jwt.guard';
 import { ReviewSaveDto } from './dto/review.save.dto';
 import { ReviewMemberIdDto } from './dto/review.member.dto';
+import { ReviewsRequestDto } from './dto/reviews.request.dto';
 
 @Controller('review')
 @ApiTags('Review')
@@ -86,6 +87,14 @@ export class ReviewController {
   @ApiOperation({ summary: '작성 가능한 후기 하나 삭제' })
   @Delete('generable')
   async deleteGenerableReview(@Param() reviewIdDto: ReviewIdDto) {
+    return await this.reviewService.deleteGenerableReview(reviewIdDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '후기 하나 삭제' })
+  @Delete()
+  async deleteReview(@Param() reviewIdDto: ReviewIdDto) {
     return await this.reviewService.deleteGenerableReview(reviewIdDto);
   }
 
@@ -161,8 +170,8 @@ export class ReviewController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '사용자가 좋아요를 누른 리뷰 목록 조회' })
-  @Get('like/list/:memberId')
-  async getLikedReviewList(@Param() memberIdPagingDto: MemberIdPagingDto) {
-    return await this.reviewService.getLikedReviewList(memberIdPagingDto);
+  @Get('like/list/:memberId/:sort')
+  async getLikedReviewList(@Param() reviewsRequestDto: ReviewsRequestDto) {
+    return await this.reviewService.getLikedReviewList(reviewsRequestDto);
   }
 }

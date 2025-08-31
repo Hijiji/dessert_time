@@ -10,4 +10,12 @@ export class MemberIdPagingDto extends CursorPaginationDto {
   })
   @IsNotEmpty()
   readonly memberId: number;
+
+  @ApiProperty({
+    example: 'D',
+    description: '정렬기준: L-좋아요순 / D-최신순 ',
+    required: true,
+  })
+  @IsNotEmpty()
+  readonly sort: string;
 }

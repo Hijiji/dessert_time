@@ -20,6 +20,8 @@ import { AdminPointService } from 'src/backoffice-modules/admin-point/admin-poin
 import { UpdateAdminPointDto } from 'src/backoffice-modules/admin-point/model/update-admin-point.dto';
 import { PointType } from 'src/common/enum/point.enum';
 import { Ingredient } from 'src/config/entities/ingredient.entity';
+import { ReviewsRequestDto } from './dto/reviews.request.dto';
+import { ResponseCursorPagination } from 'src/common/pagination/response.cursor.pagination';
 
 @Injectable()
 export class ReviewService {
@@ -156,9 +158,11 @@ export class ReviewService {
   @Transactional()
   async findReviewCategoryList(reviewCategoryDto: ReviewCategoryDto) {
     try {
-      let reviewCategoryList = await this.reviewRepository.findReviewCategoryList(reviewCategoryDto);
+      let reviewCategoryList: any[] = await this.reviewRepository.findReviewCategoryList(reviewCategoryDto);
+      console.log('reviewCategoryList:::::::::', reviewCategoryList);
       const grouped = new Map();
-      reviewCategoryList.items.forEach((review) => {
+      //reviewCategoryList.items.forEach((review) => {
+      reviewCategoryList.forEach((review) => {
         if (!grouped.has(review.reviewId)) {
           // 처음 본 reviewId이면 새로운 그룹 생성
           grouped.set(review.reviewId, {
@@ -173,11 +177,19 @@ export class ReviewService {
             memberNickName: review.memberNickName,
             memberIsHavingImg: review.memberIsHavingImg,
             isLiked: review.isLiked,
+            ingredient: [],
             reviewImg: [],
             profileImg: [],
           });
         }
         const currentReview = grouped.get(review.reviewId);
+
+        //재료 있을 때만 추가
+        if (review.ingredientName) {
+          currentReview.ingredient.push({
+            ingredientName: review.ingredientName,
+          });
+        }
 
         // reviewImg 관련 데이터가 있을 때만 추가
         if (review.reviewImgPath) {
@@ -200,8 +212,10 @@ export class ReviewService {
         }
       });
 
+      return new ResponseCursorPagination(Array.from(grouped.values()), reviewCategoryDto.limit, 'reviewId');
+
       // Map을 배열로 변환하여 반환
-      return { items: Array.from(grouped.values()), hasNextPage: reviewCategoryList.hasNextPage, nextCursor: reviewCategoryList.nextCursor };
+      // return { items: Array.from(grouped.values()), hasNextPage: reviewCategoryList.hasNextPage, nextCursor: reviewCategoryList.nextCursor };
     } catch (error) {
       throw error;
     }
@@ -552,12 +566,12 @@ export class ReviewService {
    * @returns
    */
   @Transactional()
-  async getLikedReviewList(memberIdPagingDto: MemberIdPagingDto) {
+  async getLikedReviewList(reviewsRequestDto: ReviewsRequestDto) {
     try {
-      const likedReviewList = await this.reviewRepository.findLikedReviewList(memberIdPagingDto);
+      const likedReviewList: any[] = await this.reviewRepository.findLikedReviewList(reviewsRequestDto);
       //return likedReviewList;
       const grouped = new Map();
-      likedReviewList.items.forEach((review) => {
+      likedReviewList.forEach((review) => {
         if (!grouped.has(review.reviewId)) {
           // 처음 본 reviewId이면 새로운 그룹 생성
           grouped.set(review.reviewId, {
@@ -572,11 +586,19 @@ export class ReviewService {
             memberNickName: review.memberNickName,
             memberIsHavingImg: review.memberIsHavingImg,
             isLiked: review.isLiked,
+            ingredient: [],
             reviewImg: [],
             profileImg: [],
           });
         }
         const currentReview = grouped.get(review.reviewId);
+
+        //재료 있을 때만 추가
+        if (review.ingredientName) {
+          currentReview.ingredient.push({
+            ingredientName: review.ingredientName,
+          });
+        }
 
         // reviewImg 관련 데이터가 있을 때만 추가
         if (review.reviewImgPath) {
@@ -598,9 +620,10 @@ export class ReviewService {
           });
         }
       });
+      return new ResponseCursorPagination(Array.from(grouped.values()), reviewsRequestDto.limit, 'reviewId');
 
       // Map을 배열로 변환하여 반환
-      return { items: Array.from(grouped.values()), hasNextPage: likedReviewList.hasNextPage, nextCursor: likedReviewList.nextCursor };
+      //      return { items: Array.from(grouped.values()), hasNextPage: reviewsRequestDto.hasNextPage, nextCursor: .nextCursor };
     } catch (error) {
       throw error;
     }
