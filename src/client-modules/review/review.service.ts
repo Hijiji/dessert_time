@@ -339,6 +339,21 @@ export class ReviewService {
   }
 
   /**
+   * 등록한 리뷰 삭제하기
+   *  -- 리뷰 숨김, 포인트 삭감
+   * @param reviewIdDto
+   * @returns
+   */
+  @Transactional()
+  async deleteReview(reviewIdDto: ReviewIdDto) {
+    try {
+      await this.reviewRepository.updateReviewStatus(reviewIdDto);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
    * 재료 하나 생성하기
    */
   @Transactional()

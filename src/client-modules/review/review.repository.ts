@@ -373,6 +373,16 @@ export class ReviewRepository {
   }
 
   /**
+   * 등록한 후기 숨김처리 - 사용자 삭제
+   * @param reviewIdDto
+   * @returns
+   */
+  async updateReviewStatus(reviewIdDto: ReviewIdDto) {
+    const saveReview = new Review();
+    saveReview.isUsable = false;
+    return await this.review.save(saveReview);
+  }
+  /**
    * 재료 하나 생성
    * @param ingredientNameDto
    */
