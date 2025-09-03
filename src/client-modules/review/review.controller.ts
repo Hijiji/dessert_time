@@ -12,10 +12,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ReviewImgSaveDto } from './dto/reviewimg.save.dto';
 import { ReviewImgIdDto } from './dto/reviewimg.id.dto';
 import { UpdateReviewImgListDto } from './dto/reviewimg.list.change.dto';
-import { IngredientNameDto } from './dto/ingredient.name.dto';
 import { MemberIdPagingDto } from './dto/review.dto';
 import { JwtAuthGuard } from 'src/config/auth/jwt/jwt.guard';
-import { ReviewSaveDto } from './dto/review.save.dto';
 import { ReviewMemberIdDto } from './dto/review.member.dto';
 import { ReviewsRequestDto } from './dto/reviews.request.dto';
 
@@ -93,7 +91,7 @@ export class ReviewController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '등록된 내 후기 하나 삭제' })
-  @Delete()
+  @Delete('/:reviewId')
   async deleteReview(@Param() reviewIdDto: ReviewIdDto) {
     return await this.reviewService.deleteReview(reviewIdDto);
   }

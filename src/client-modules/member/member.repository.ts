@@ -137,6 +137,26 @@ export class MemberRepository {
   }
 
   /**
+   * 사용자프로필조회
+   * @param memberIdDto
+   * @returns
+   */
+  async findMemberProfile(memberIdDto: MemberIdDto) {
+    return await this.memberRepository
+      .createQueryBuilder('m')
+      .leftJoin(ProfileImg, 'profileImg', 'profileImg.memberMemberId = m.memberId') // 프로필 이미지와의 JOIN
+      .select([
+        'm.nickName AS "nickName"',
+        'profileImg.middlePath AS "profileImgMiddlePath"',
+        'profileImg.profileImgId AS "profileImgId"',
+        'profileImg.path AS "profileImgPath"',
+        'profileImg.extension AS "profileImgExtension"',
+      ])
+      .where('m.memberId = :memberId', { memberId: memberIdDto.memberId }) // 특정 회원 ID 조건
+      .getRawOne();
+  }
+
+  /**
    * 사용자정보 조회 - 이미지, 취향 join
    * @param memberIdDto
    * @returns
