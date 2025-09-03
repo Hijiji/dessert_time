@@ -107,12 +107,17 @@ export class MemberService {
   @Transactional()
   async myPageOverview(memberIdDto: MemberIdDto) {
     try {
-      const nickName = await this.memberRepository.findUserNickNameOne(memberIdDto);
+      const member = await this.memberRepository.findMemberProfile(memberIdDto);
+      console.log('member ::', member);
       const usersReviewCount = await this.memberRepository.countReview(memberIdDto);
       const usersPoint = await this.memberRepository.findTotalPointOne(memberIdDto);
       const usersTotalPoint = usersPoint[0] ? usersPoint[0].totalPoint : 0;
       return {
-        nickName: nickName.nickName,
+        nickName: member.nickName,
+        profileImgId: member.profileImgId,
+        profileImgMiddlePath: member.profileImgMiddlePath,
+        profileImgPath: member.profileImgPath,
+        profileImgExtension: member.profileImgExtension,
         usersReviewCount,
         usersTotalPoint,
       };
