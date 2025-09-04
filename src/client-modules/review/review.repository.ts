@@ -130,6 +130,14 @@ export class ReviewRepository {
       .addSelect('reviewImg.path', 'path')
       .addSelect('reviewImg.extention', 'extention')
       .addSelect('reviewImg.imgName', 'imgName')
+      .addSelect(
+        `CASE 
+           WHEN review.createdDate >= SYSDATE - 1 
+           THEN 'true' 
+           ELSE 'false'
+         END`,
+        'isNew',
+      )
       .orderBy('review.createdDate', 'DESC')
       .limit(10)
       .getRawMany();
@@ -175,6 +183,14 @@ export class ReviewRepository {
       .addSelect('reviewImg.path', 'path')
       .addSelect('reviewImg.extention', 'extention')
       .addSelect('reviewImg.imgName', 'imgName')
+      .addSelect(
+        `CASE 
+           WHEN review.createdDate >= SYSDATE - 1 
+           THEN 'true'
+           ELSE 'false'
+         END`,
+        'isNew',
+      )
       .orderBy('review.createdDate', 'DESC')
       .limit(10)
       .getRawMany();
