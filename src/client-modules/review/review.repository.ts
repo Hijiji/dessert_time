@@ -378,9 +378,7 @@ export class ReviewRepository {
    * @returns
    */
   async updateReviewStatus(reviewIdDto: ReviewIdDto) {
-    const saveReview = new Review();
-    saveReview.isUsable = false;
-    return await this.review.save(saveReview);
+    await this.review.update({ reviewId: reviewIdDto.reviewId }, { isUsable: false });
   }
   /**
    * 재료 하나 생성
