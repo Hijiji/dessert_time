@@ -91,7 +91,7 @@ export class ReviewController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '등록된 내 후기 하나 삭제' })
-  @Delete('/:reviewId')
+  @Delete(':reviewId')
   async deleteReview(@Param() reviewIdDto: ReviewIdDto) {
     return await this.reviewService.deleteReview(reviewIdDto);
   }
