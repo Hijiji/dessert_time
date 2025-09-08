@@ -26,8 +26,7 @@ export const typeORMConfig = async (configService: ConfigService): Promise<TypeO
     username: 'admin',
     password: 'DTelwjxmxkdla8*',
     //    connectString: 'dbdesserttime_high', // tnsnames.ora에 있는 alias 사용
-    connectString: `(description= (retry_count=20)(retry_delay=3)(address=(protocol=tcps)(port=1522)(host=adb.ap-chuncheon-1.oraclecloud.com))(connect_data=(service_name=ga0c4cbf63f5084_dbdesserttime_high.adb.oraclecloud.com))(security=(ssl_server_dn_match=yes)))`,
-
+    connectString: `(description= (retry_count=20)(retry_delay=3) (address=(protocol=tcps)(port=1522)(host=adb.ap-chuncheon-1.oraclecloud.com)) (connect_data=(service_name=ga0c4cbf63f5084_dbdesserttime_tp.adb.oraclecloud.com)) (security=(ssl_server_dn_match=yes)))`,
     // extra: {
     //   // oracledb에 직접 전달되는 옵션
     //   configDir: '/Users/jeongjimin/Downloads/Wallet_dbdesserttime',
