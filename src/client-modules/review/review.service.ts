@@ -52,9 +52,9 @@ export class ReviewService {
             memberNickName: row.memberNickName,
             memberIsHavingImg: row.memberIsHavingImg,
             isLiked: row.isLiked,
-            profileImgMiddlePath: row.profileImgMiddlePath || null,
-            profileImgPath: row.profileImgPath || null,
-            profileImgExtension: row.profileImgExtension || null,
+            profileImgMiddlePath: row.PROFILEIMGMIDDLEPATH || null,
+            profileImgPath: row.PROFILEIMGPATH || null,
+            profileImgExtension: row.PROFILEIMGEXTENTION || null,
             reviewImg: [],
             ingredients: [],
           });
