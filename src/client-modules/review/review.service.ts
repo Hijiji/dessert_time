@@ -584,7 +584,7 @@ export class ReviewService {
   async getLikedReviewList(reviewsRequestDto: ReviewsRequestDto) {
     try {
       const likedReviewList: any[] = await this.reviewRepository.findLikedReviewList(reviewsRequestDto);
-      //return likedReviewList;
+      console.log('likedReviewList :::::', likedReviewList);
       const grouped = new Map();
       likedReviewList.forEach((review) => {
         if (!grouped.has(review.reviewId)) {
@@ -627,11 +627,11 @@ export class ReviewService {
         }
 
         // profileImg 관련 데이터가 있을 때만 추가
-        if (review.profileImgPath) {
+        if (review.PROFILEIMGPATH) {
           currentReview.profileImg.push({
-            profileImgMiddlePath: review.profileImgMiddlePath,
-            profileImgPath: review.profileImgPath,
-            profileImgExtention: review.profileImgExtention,
+            profileImgMiddlePath: review.PROFILEIMGMIDDLEPATH,
+            profileImgPath: review.PROFILEIMGPATH,
+            profileImgExtention: review.PROFILEIMGEXTENTION,
           });
         }
       });
