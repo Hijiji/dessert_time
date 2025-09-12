@@ -584,7 +584,6 @@ export class ReviewService {
   async getLikedReviewList(reviewsRequestDto: ReviewsRequestDto) {
     try {
       const likedReviewList: any[] = await this.reviewRepository.findLikedReviewList(reviewsRequestDto);
-      console.log('likedReviewList :::::', likedReviewList);
       const grouped = new Map();
       likedReviewList.forEach((review) => {
         if (!grouped.has(review.reviewId)) {
@@ -609,14 +608,14 @@ export class ReviewService {
         const currentReview = grouped.get(review.reviewId);
 
         //재료 있을 때만 추가
-        if (review.ingredientName) {
+        if (review.ingredientName && !currentReview.ingredient.some((ingredient) => ingredient.ingredientName === review.ingredientName)) {
           currentReview.ingredient.push({
             ingredientName: review.ingredientName,
           });
         }
 
         // reviewImg 관련 데이터가 있을 때만 추가
-        if (review.reviewImgPath) {
+        if (review.reviewImgPath && !currentReview.reviewImg.some((reviewImg) => reviewImg.reviewImgPath === review.reviewImgPath)) {
           currentReview.reviewImg.push({
             reviewImgIsMain: review.reviewImgIsMain,
             reviewImgNum: review.reviewImgNum,
@@ -627,7 +626,7 @@ export class ReviewService {
         }
 
         // profileImg 관련 데이터가 있을 때만 추가
-        if (review.PROFILEIMGPATH) {
+        if (review.PROFILEIMGPATH && !currentReview.profileImg.some((profileImg) => profileImg.profileImgPath === review.PROFILEIMGPATH)) {
           currentReview.profileImg.push({
             profileImgMiddlePath: review.PROFILEIMGMIDDLEPATH,
             profileImgPath: review.PROFILEIMGPATH,
@@ -636,9 +635,6 @@ export class ReviewService {
         }
       });
       return new ResponseCursorPagination(Array.from(grouped.values()), reviewsRequestDto.limit, 'reviewId');
-
-      // Map을 배열로 변환하여 반환
-      //      return { items: Array.from(grouped.values()), hasNextPage: reviewsRequestDto.hasNextPage, nextCursor: .nextCursor };
     } catch (error) {
       throw error;
     }
