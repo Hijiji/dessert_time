@@ -63,6 +63,7 @@ export class DessertCategoryRepository {
       .createQueryBuilder('dessertCategory')
       .select(['dessertCategory.dessertCategoryId', 'dessertCategory.dessertName'])
       .where('dessertCategory.dessertName LIKE :searchTerm', { searchTerm: `%${searchTerm}%` })
+      .andWhere('dessertCategory.sessionNum = :sessionNum', { sessionNum: 2 })
       .orderBy(`CASE WHEN dessertCategory.dessertName LIKE :exactTerm THEN 1 ELSE 2 END`, 'ASC')
       .addOrderBy('dessertCategory.dessertName', 'ASC')
       .setParameters({ exactTerm: `${searchTerm}%` })

@@ -52,9 +52,9 @@ export class ReviewService {
             memberNickName: row.memberNickName,
             memberIsHavingImg: row.memberIsHavingImg,
             isLiked: row.isLiked,
-            profileImgMiddlePath: row.profileImgMiddlePath || null,
-            profileImgPath: row.profileImgPath || null,
-            profileImgExtension: row.profileImgExtension || null,
+            profileImgMiddlePath: row.PROFILEIMGMIDDLEPATH || null,
+            profileImgPath: row.PROFILEIMGPATH || null,
+            profileImgExtension: row.PROFILEIMGEXTENTION || null,
             reviewImg: [],
             ingredients: [],
           });
@@ -159,9 +159,7 @@ export class ReviewService {
   async findReviewCategoryList(reviewCategoryDto: ReviewCategoryDto) {
     try {
       let reviewCategoryList: any[] = await this.reviewRepository.findReviewCategoryList(reviewCategoryDto);
-      console.log('reviewCategoryList:::::::::', reviewCategoryList);
       const grouped = new Map();
-      //reviewCategoryList.items.forEach((review) => {
       reviewCategoryList.forEach((review) => {
         if (!grouped.has(review.reviewId)) {
           // 처음 본 reviewId이면 새로운 그룹 생성
@@ -185,14 +183,14 @@ export class ReviewService {
         const currentReview = grouped.get(review.reviewId);
 
         //재료 있을 때만 추가
-        if (review.ingredientName) {
+        if (review.ingredientName && !currentReview.ingredient.some((ingredient) => ingredient.ingredientName === review.ingredientName)) {
           currentReview.ingredient.push({
             ingredientName: review.ingredientName,
           });
         }
 
         // reviewImg 관련 데이터가 있을 때만 추가
-        if (review.reviewImgPath) {
+        if (review.reviewImgPath && !currentReview.reviewImg.some((reviewImg) => reviewImg.reviewImgPath === review.reviewImgPath)) {
           currentReview.reviewImg.push({
             reviewImgIsMain: review.reviewImgIsMain,
             reviewImgNum: review.reviewImgNum,
@@ -203,19 +201,16 @@ export class ReviewService {
         }
 
         // profileImg 관련 데이터가 있을 때만 추가
-        if (review.profileImgPath) {
+        if (review.PROFILEIMGPATH && !currentReview.profileImg.some((profileImg) => profileImg.profileImgPath === review.PROFILEIMGPATH)) {
           currentReview.profileImg.push({
-            profileImgMiddlePath: review.profileImgMiddlePath,
-            profileImgPath: review.profileImgPath,
-            profileImgExtention: review.profileImgExtention,
+            profileImgMiddlePath: review.PROFILEIMGMIDDLEPATH,
+            profileImgPath: review.PROFILEIMGPATH,
+            profileImgExtention: review.PROFILEIMGEXTENTION,
           });
         }
       });
 
       return new ResponseCursorPagination(Array.from(grouped.values()), reviewCategoryDto.limit, 'reviewId');
-
-      // Map을 배열로 변환하여 반환
-      // return { items: Array.from(grouped.values()), hasNextPage: reviewCategoryList.hasNextPage, nextCursor: reviewCategoryList.nextCursor };
     } catch (error) {
       throw error;
     }
@@ -584,7 +579,6 @@ export class ReviewService {
   async getLikedReviewList(reviewsRequestDto: ReviewsRequestDto) {
     try {
       const likedReviewList: any[] = await this.reviewRepository.findLikedReviewList(reviewsRequestDto);
-      //return likedReviewList;
       const grouped = new Map();
       likedReviewList.forEach((review) => {
         if (!grouped.has(review.reviewId)) {
@@ -609,14 +603,14 @@ export class ReviewService {
         const currentReview = grouped.get(review.reviewId);
 
         //재료 있을 때만 추가
-        if (review.ingredientName) {
+        if (review.ingredientName && !currentReview.ingredient.some((ingredient) => ingredient.ingredientName === review.ingredientName)) {
           currentReview.ingredient.push({
             ingredientName: review.ingredientName,
           });
         }
 
         // reviewImg 관련 데이터가 있을 때만 추가
-        if (review.reviewImgPath) {
+        if (review.reviewImgPath && !currentReview.reviewImg.some((reviewImg) => reviewImg.reviewImgPath === review.reviewImgPath)) {
           currentReview.reviewImg.push({
             reviewImgIsMain: review.reviewImgIsMain,
             reviewImgNum: review.reviewImgNum,
@@ -627,18 +621,15 @@ export class ReviewService {
         }
 
         // profileImg 관련 데이터가 있을 때만 추가
-        if (review.profileImgPath) {
+        if (review.PROFILEIMGPATH && !currentReview.profileImg.some((profileImg) => profileImg.profileImgPath === review.PROFILEIMGPATH)) {
           currentReview.profileImg.push({
-            profileImgMiddlePath: review.profileImgMiddlePath,
-            profileImgPath: review.profileImgPath,
-            profileImgExtention: review.profileImgExtention,
+            profileImgMiddlePath: review.PROFILEIMGMIDDLEPATH,
+            profileImgPath: review.PROFILEIMGPATH,
+            profileImgExtention: review.PROFILEIMGEXTENTION,
           });
         }
       });
       return new ResponseCursorPagination(Array.from(grouped.values()), reviewsRequestDto.limit, 'reviewId');
-
-      // Map을 배열로 변환하여 반환
-      //      return { items: Array.from(grouped.values()), hasNextPage: reviewsRequestDto.hasNextPage, nextCursor: .nextCursor };
     } catch (error) {
       throw error;
     }
