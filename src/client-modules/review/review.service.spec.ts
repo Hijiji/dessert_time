@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ReviewService } from './review.service';
-import { ReviewRepository } from './review.repository';
-import { MemberIdDto } from './dto/member.id.dto';
 import { AdminPointService } from 'src/backoffice-modules/admin-point/admin-point.service';
 import { initializeTransactionalContext } from 'typeorm-transactional-cls-hooked';
-import { Review } from 'src/config/entities/review.entity';
+import { MemberIdDto } from './dto/member.id.dto';
+import { ReviewRepository } from './review.repository';
+import { ReviewService } from './review.service';
+import { ReviewCategoryDto } from './dto/review.category.dto';
 
 // 트랜잭션 초기화 : 실제 DB 트랜잭션을 걸지 않고 @Transaction이 동작하도록 준비함. 초기화함수.
 initializeTransactionalContext();
@@ -82,11 +82,115 @@ describe('ReviewService', () => {
     });
   });
 
+  it('interestList가 있지만 usableCategoryList가 없으면 랜덤조회한다', async () => {
+    const dto: MemberIdDto = { memberId: 1 };
+    repository.findMemberInterestList.mockResolvedValue([{ dc_dessertCategoryId: 2 }]);
+    repository.findUsablecategoryList.mockResolvedValue([]);
+    repository.findRandomCategoryList.mockResolvedValue([{ dc_dessertCategoryId: 3, dc_dessertName: '파이' }]);
+    repository.findRandomReviewImgList.mockResolvedValue([{ reviewId: 20 }]);
+
+    const result = await service.getHomeReviewImgList(dto);
+
+    expect(repository.findMemberInterestList).toHaveBeenCalled();
+    expect(repository.findUsablecategoryList).toHaveBeenCalled();
+    expect(result).toEqual([{ dessertCategoryId: 3, dessertName: '파이', categoryReviewImgList: [{ reviewId: 20 }] }]);
+  });
+
   it('repository 에러 발생시 throw', async () => {
     //의도적 Promise error 발생
     repository.findRandomCategoryList.mockRejectedValue(new Error('db error'));
 
     //rejects된 값이 dberror이야? 웅
     await expect(service.getHomeReviewImgList({ memberId: null } as MemberIdDto)).rejects.toThrow('db error');
+  });
+
+  describe('findReviewCategoryList', () => {
+    it('repository가 빈 배열을 리텅하면 빈 pagination을 리턴한다', async () => {
+      const dto: ReviewCategoryDto = { dessertCategoryId: 10, selectedOrder: 'L', memberId: 1, limit: 30 };
+
+      repository.findReviewCategoryList.mockResolvedValue([]);
+
+      const result = await service.findReviewCategoryList(dto);
+
+      expect(result).toEqual({ items: [], hasNextPage: false, nextCursor: null });
+    });
+
+    it('같은 reviewId를 가진 ingredient, reviewImg, profileimg가 중복되면 삭제한다.', async () => {
+      const dto: ReviewCategoryDto = { dessertCategoryId: 10, selectedOrder: 'L', memberId: 1, limit: 30 };
+
+      repository.findReviewCategoryList.mockResolvedValue([
+        {
+          reviewId: 1,
+          totalLikedNum: 5,
+          menuName: 'Cake',
+          content: 'Good',
+          storeName: 'Cafe',
+          score: 4,
+          createdDate: new Date('2025-09-15T00:00:00Z'),
+          dessertCategoryId: 10,
+          memberNickName: 'UserA',
+          memberIsHavingImg: true,
+          isLiked: 1,
+          ingredientName: 'a',
+          reviewImgPath: 'c',
+          reviewImgIsMain: '',
+          reviewImgNum: '',
+          reviewImgMiddlepath: '',
+          reviewImgExtention: '',
+          PROFILEIMGPATH: 'a',
+          PROFILEIMGMIDDLEPATH: '',
+          PROFILEIMGEXTENTION: '',
+        },
+        {
+          reviewId: 1,
+          totalLikedNum: 5,
+          menuName: 'Cake',
+          content: 'Good',
+          storeName: 'Cafe',
+          score: 4,
+          createdDate: new Date('2025-09-15T00:00:00Z'),
+          dessertCategoryId: 10,
+          memberNickName: 'UserA',
+          memberIsHavingImg: true,
+          isLiked: 1,
+          ingredientName: 'b',
+          reviewImgPath: 'a',
+          reviewImgIsMain: '',
+          reviewImgNum: '',
+          reviewImgMiddlepath: '',
+          reviewImgExtention: '',
+          PROFILEIMGPATH: 'a',
+          PROFILEIMGMIDDLEPATH: '',
+          PROFILEIMGEXTENTION: '',
+        },
+      ]);
+
+      const result = await service.findReviewCategoryList(dto);
+      expect(result).toEqual({
+        hasNextPage: false,
+        nextCursor: null,
+        items: [
+          {
+            reviewId: 1,
+            totalLikedNum: 5,
+            menuName: 'Cake',
+            content: 'Good',
+            storeName: 'Cafe',
+            score: 4,
+            createdDate: expect.any(Date),
+            dessertCategoryId: 10,
+            memberNickName: 'UserA',
+            memberIsHavingImg: true,
+            isLiked: 1,
+            ingredient: [{ ingredientName: 'a' }, { ingredientName: 'b' }],
+            reviewImg: [
+              { reviewImgPath: 'c', reviewImgIsMain: '', reviewImgNum: '', reviewImgMiddlepath: '', reviewImgExtention: '' },
+              { reviewImgPath: 'a', reviewImgIsMain: '', reviewImgNum: '', reviewImgMiddlepath: '', reviewImgExtention: '' },
+            ],
+            profileImg: [{ profileImgPath: 'a', profileImgMiddlePath: '', profileImgExtention: '' }],
+          },
+        ],
+      });
+    });
   });
 });
