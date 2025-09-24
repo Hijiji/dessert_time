@@ -4,10 +4,14 @@ import { Accusation } from 'src/config/entities/accusation.entity';
 import { Repository } from 'typeorm';
 import { PostAccusationDto } from './dto/post.accusation.dto';
 import { AccusationRecordDto } from './dto/accusation.record.dto';
+import { Review } from 'src/config/entities/review.entity';
 
 @Injectable()
 export class AccusationRepository {
-  constructor(@InjectRepository(Accusation) private accustion: Repository<Accusation>) {}
+  constructor(
+    @InjectRepository(Accusation) private accustion: Repository<Accusation>,
+    @InjectRepository(Review) private review: Repository<Review>,
+  ) {}
 
   /**
    * 신고 등록
@@ -21,6 +25,20 @@ export class AccusationRepository {
       member: { memberId: postAccusationDto.memberId },
       review: { reviewId: postAccusationDto.reviewId },
     });
+  }
+
+  /**
+   * 신고한 리뷰 갯수 카운트
+   */
+  async countAccusation(postAccusationDto: PostAccusationDto) {
+    return await this.accustion.count({ where: { review: { reviewId: postAccusationDto.reviewId } } });
+  }
+
+  /**
+   * 리뷰 조회 안되게 업데이트
+   */
+  async updateReview(reviewId) {
+    await this.review.update({ reviewId }, { isUsable: false });
   }
 
   /**
