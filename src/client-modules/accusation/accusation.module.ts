@@ -4,9 +4,10 @@ import { AccusationService } from './accusation.service';
 import { AccusationRepository } from './accusation.repository';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Accusation } from 'src/config/entities/accusation.entity';
+import { Review } from 'src/config/entities/review.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Accusation])],
+  imports: [TypeOrmModule.forFeature([Accusation, Review])],
   controllers: [AccusationController],
   providers: [AccusationService, AccusationRepository],
 })

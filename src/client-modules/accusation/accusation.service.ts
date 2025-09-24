@@ -29,6 +29,8 @@ export class AccusationService {
   @Transactional()
   async postAccusation(postAccusationDto: PostAccusationDto) {
     await this.accusationRepository.insertAccusation(postAccusationDto);
+    const count = await this.accusationRepository.countAccusation(postAccusationDto);
+    if (count >= 3) await this.accusationRepository.updateReview(postAccusationDto.reviewId);
   }
 
   /**
