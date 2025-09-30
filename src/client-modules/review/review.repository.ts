@@ -34,6 +34,11 @@ export class ReviewRepository {
     @InjectRepository(ReviewImg) private reviewImg: Repository<ReviewImg>,
   ) {}
 
+  async findBlockedUsers(memberId: string) {
+    //전달 받은 memberId 로 차단된 사용자ID 목록 조회 및 반환
+    return;
+  }
+
   async findReviewOne(reviewMemberIdDto: ReviewMemberIdDto) {
     const memberId = reviewMemberIdDto.memberId > 0 ? reviewMemberIdDto.memberId : 0;
     return await this.review
@@ -205,7 +210,10 @@ export class ReviewRepository {
     const { cursor, limit } = reviewCategoryDto;
     const orderField = reviewCategoryDto.selectedOrder === 'D' ? 'createdDate' : 'totalLikedNum';
 
-    // 1️⃣ 리뷰 ID만 먼저 조회 (중복 제거)
+    //todo 차단되지 않은 사용자들의 리뷰만 조회
+    //not in (findBlockedUsers(memberId))
+
+    // 리뷰 ID만 먼저 조회 (중복 제거)
     const reviewIdQuery = this.review
       .createQueryBuilder('review')
       .select('review.reviewId', 'reviewId')
@@ -229,7 +237,7 @@ export class ReviewRepository {
       //new ResponseCursorPagination([], limit, 'reviewId');
     }
 
-    // 2️⃣ 리뷰 ID 기준으로 JOIN
+    // 리뷰 ID 기준으로 JOIN
     const itemsQuery = this.review
       .createQueryBuilder('review')
       .select([
@@ -538,7 +546,10 @@ export class ReviewRepository {
     const { cursor, limit } = reviewsRequestDto;
     const orderField = reviewsRequestDto.sort === 'D' ? 'createdDate' : 'totalLikedNum';
 
-    // 1️⃣ 리뷰 ID만 먼저 조회 (중복 제거)
+    //todo 차단되지 않은 사용자들의 리뷰만 조회
+    //not in (findBlockedUsers(memberId))
+
+    // 리뷰 ID만 먼저 조회 (중복 제거)
     const reviewIdQuery = this.review
       .createQueryBuilder('review')
       .select('review.reviewId', 'reviewId')
@@ -559,7 +570,7 @@ export class ReviewRepository {
       return [];
     }
 
-    // 2️⃣ 리뷰 ID 기준으로 JOIN
+    // 리뷰 ID 기준으로 JOIN
     const itemsQuery = this.review
       .createQueryBuilder('review')
       .select([

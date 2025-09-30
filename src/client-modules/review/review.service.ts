@@ -37,6 +37,8 @@ export class ReviewService {
    */
   async findReviewOne(reviewMemberIdDto: ReviewMemberIdDto) {
     try {
+      //todo 차단여부 확인하여 접근 가능여부 판단 로직 추가
+      //not in (findBlockedUsers(memberId))
       const rawReviews = await this.reviewRepository.findReviewOne(reviewMemberIdDto);
       const review = rawReviews.reduce((result, row) => {
         if (!result.reviewId) {
@@ -94,6 +96,10 @@ export class ReviewService {
    */
   @Transactional()
   async getHomeReviewImgList(memberIdDto: MemberIdDto) {
+    //todo 차단되지 않은 사용자들의 리뷰만 조회
+    //not in (findBlockedUsers(memberId))
+    //정책 질문한 상황 - 카운팅 어케해야하는지 답변나오면 위 todo 적용
+
     try {
       // 사용자가 선호하는 카테고리의 2차 카테고리ID 목록 조회
       let memberInterestList = [];
