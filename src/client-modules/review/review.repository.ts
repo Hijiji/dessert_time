@@ -22,6 +22,7 @@ import { ResponseCursorPagination } from 'src/common/pagination/response.cursor.
 import { MemberIdPagingDto } from './dto/review.dto';
 import { ReviewMemberIdDto } from './dto/review.member.dto';
 import { ReviewsRequestDto } from './dto/reviews.request.dto';
+import { BlockedMember } from 'src/config/entities/blocked.member.entity';
 
 @Injectable()
 export class ReviewRepository {
@@ -32,11 +33,14 @@ export class ReviewRepository {
     @InjectRepository(Ingredient) private ingredient: Repository<Ingredient>,
     @InjectRepository(ReviewIngredient) private reviewIngredient: Repository<ReviewIngredient>,
     @InjectRepository(ReviewImg) private reviewImg: Repository<ReviewImg>,
+    @InjectRepository(BlockedMember) private blockedMember: Repository<BlockedMember>,
+
   ) {}
 
-  async findBlockedUsers(memberId: string) {
-    //전달 받은 memberId 로 차단된 사용자ID 목록 조회 및 반환
-    return;
+  async findBlockedUsers(memberId: number) {
+    //todo 전달 받은 memberId 로 차단된 사용자ID 목록 조회 및 반환
+    return await this.blockedMember.find({select:{blockedMemberId:true},where :{primaryMemberId:memberId}})
+    ;
   }
 
   async findReviewOne(reviewMemberIdDto: ReviewMemberIdDto) {
@@ -107,6 +111,7 @@ export class ReviewRepository {
       .leftJoin(DessertCategory, 'dc', 'review.dessertCategoryDessertCategoryId = dc.dessertCategoryId')
       .andWhere({ status: ReviewStatus.SAVED })
       .andWhere({ isUsable: true })
+    .andWhere({memberId:!in(memberId)})
       .andWhere('dc.dessertCategoryId IN (:...dessertCategoryId)', { dessertCategoryId })
       .groupBy('dc.dessertCategoryId, dc.dessertName')
       .having('COUNT(review.reviewId) >= :minReviewCount', { minReviewCount: 5 })
