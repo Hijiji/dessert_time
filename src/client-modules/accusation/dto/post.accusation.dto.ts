@@ -32,6 +32,14 @@ export class PostAccusationDto {
   readonly memberId: number;
 
   @ApiProperty({
+    example: '1',
+    description: '신고 당하는 리뷰작성자의 ID',
+    required: true,
+  })
+  @IsNotEmpty()
+  readonly blockedMemberId: number;
+
+  @ApiProperty({
     example: '21',
     description: '신고할 리뷰 Id',
     required: true,

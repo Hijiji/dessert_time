@@ -32,9 +32,11 @@ export class AccusationService {
     const count = await this.accusationRepository.countAccusation(postAccusationDto);
     if (count >= 3) await this.accusationRepository.updateReview(postAccusationDto.reviewId);
 
+    await this.accusationRepository.insertBlockedMember(postAccusationDto);
     //todo
-    //신고하기 누른 사용자가 올린 모든 리뷰 조회 못하게 막기
+    //완료 : 사용자 차단기능 구현하기
     //완료 : table 하나 생성 - 사용자별 차단 유저 관리 테이블
+    //신고하기 누른 사용자가 올린 모든 리뷰 조회 못하게 막기
     //리뷰 조회 API마다 사용자 ID로 차단된 사용자들의 리뷰는 조회되지 못하게 수정필요
   }
 
