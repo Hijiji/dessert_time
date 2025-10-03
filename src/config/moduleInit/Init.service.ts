@@ -11,7 +11,7 @@ export class InitService implements OnModuleInit {
 
   onModuleInit() {
     this.initRepository.insertIngredient();
-
+    this.initRepository.insertDessertCategory();
     // this.dataSource.query('ALTER SYSTEM FLUSH SHARED_POOL');
   }
 }
