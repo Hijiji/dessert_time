@@ -6,8 +6,8 @@ export class BlockedMember {
   id: number;
 
   @Column()
-  primaryMemberId: string;
+  primaryMemberId: number;
 
   @Column()
-  blockedMemberId: string;
+  blockedMemberId: number;
 }

@@ -22,6 +22,7 @@ import { ResponseCursorPagination } from 'src/common/pagination/response.cursor.
 import { MemberIdPagingDto } from './dto/review.dto';
 import { ReviewMemberIdDto } from './dto/review.member.dto';
 import { ReviewsRequestDto } from './dto/reviews.request.dto';
+import { BlockedMember } from 'src/config/entities/blocked.member.entity';
 
 @Injectable()
 export class ReviewRepository {
@@ -32,11 +33,17 @@ export class ReviewRepository {
     @InjectRepository(Ingredient) private ingredient: Repository<Ingredient>,
     @InjectRepository(ReviewIngredient) private reviewIngredient: Repository<ReviewIngredient>,
     @InjectRepository(ReviewImg) private reviewImg: Repository<ReviewImg>,
+    @InjectRepository(BlockedMember) private blockedMember: Repository<BlockedMember>,
   ) {}
 
-  async findBlockedUsers(memberId: string) {
-    //전달 받은 memberId 로 차단된 사용자ID 목록 조회 및 반환
-    return;
+  /**
+   * 전달 받은 memberId 로 차단된 사용자ID 목록 조회 및 반환
+   * @param memberId
+   * @returns
+   */
+  async findBlockedUsers(memberId: number) {
+    const blocked = await this.blockedMember.find({ select: { blockedMemberId: true }, where: { primaryMemberId: memberId } });
+    return blocked.map((b) => b.blockedMemberId);
   }
 
   async findReviewOne(reviewMemberIdDto: ReviewMemberIdDto) {
@@ -101,12 +108,16 @@ export class ReviewRepository {
    * @param dessertCategoryId
    * @returns
    */
-  async findUsablecategoryList(dessertCategoryId) {
+  async findUsablecategoryList(dessertCategoryId, memberId) {
+    //차단된 사용자 ID만 뽑기
+    const blockedIds = await this.findBlockedUsers(memberId);
+
     return await this.review
       .createQueryBuilder('review')
       .leftJoin(DessertCategory, 'dc', 'review.dessertCategoryDessertCategoryId = dc.dessertCategoryId')
       .andWhere({ status: ReviewStatus.SAVED })
       .andWhere({ isUsable: true })
+      .andWhere(blockedIds.length > 0 ? 'review.memberId NOT IN (:...blockedIds)' : '1=1', { blockedIds })
       .andWhere('dc.dessertCategoryId IN (:...dessertCategoryId)', { dessertCategoryId })
       .groupBy('dc.dessertCategoryId, dc.dessertName')
       .having('COUNT(review.reviewId) >= :minReviewCount', { minReviewCount: 5 })
@@ -121,12 +132,16 @@ export class ReviewRepository {
    * @param dessertCategoryId
    * @returns
    */
-  async findReviewImgList(dessertCategoryId) {
+  async findReviewImgList(dessertCategoryId, memberId) {
+    //차단된 사용자 ID만 뽑기
+    const blockedIds = await this.findBlockedUsers(memberId);
+
     return await this.review
       .createQueryBuilder('review')
       .leftJoin(DessertCategory, 'dc', 'review.dessertCategoryDessertCategoryId = dc.dessertCategoryId')
       .leftJoin(ReviewImg, 'reviewImg', 'review.reviewId = reviewImg.reviewImgReviewId')
       .where('review.dessertCategoryDessertCategoryId=:dessertCategoryId', { dessertCategoryId })
+      .andWhere(blockedIds.length > 0 ? 'review.memberId NOT IN (:...blockedIds)' : '1=1', { blockedIds })
       .andWhere('review.isUsable = :isUsable', { isUsable: true })
       .andWhere('review.status = :status', { status: ReviewStatus.SAVED })
       .andWhere('reviewImg.isMain=:isMain', { isMain: true })
@@ -154,12 +169,16 @@ export class ReviewRepository {
    * @param limitnum
    * @returns
    */
-  async findRandomCategoryList(limitnum: number) {
+  async findRandomCategoryList(limitnum: number, memberId) {
+    //차단된 사용자 ID만 뽑기
+    const blockedIds = await this.findBlockedUsers(memberId);
+
     return await this.review
       .createQueryBuilder('review')
       .leftJoin(DessertCategory, 'dc', 'review.dessertCategoryDessertCategoryId = dc.dessertCategoryId')
       .andWhere({ status: ReviewStatus.SAVED })
       .andWhere({ isUsable: true })
+      .andWhere(blockedIds.length > 0 ? 'review.memberId NOT IN (:...blockedIds)' : '1=1', { blockedIds })
       .andWhere('dc.sessionNum = :sessionNum', { sessionNum: 2 })
       .groupBy('dc.dessertCategoryId, dc.dessertName')
       .orderBy('COUNT(review.reviewId)', 'DESC')
@@ -174,12 +193,15 @@ export class ReviewRepository {
    * @param dessertCategoryId
    * @returns
    */
-  async findRandomReviewImgList(dessertCategoryId) {
+  async findRandomReviewImgList(dessertCategoryId, memberId) {
+    //차단된 사용자 ID만 뽑기
+    const blockedIds = await this.findBlockedUsers(memberId);
     return await this.review
       .createQueryBuilder('review')
       .leftJoin(DessertCategory, 'dc', 'review.dessertCategoryDessertCategoryId = dc.dessertCategoryId')
       .leftJoin(ReviewImg, 'reviewImg', 'review.reviewId = reviewImg.reviewImgReviewId')
       .where('review.dessertCategoryDessertCategoryId=:dessertCategoryId', { dessertCategoryId })
+      .andWhere(blockedIds.length > 0 ? 'review.memberId NOT IN (:...blockedIds)' : '1=1', { blockedIds })
       .andWhere('review.isUsable = :isUsable', { isUsable: true })
       .andWhere('review.status = :status', { status: ReviewStatus.SAVED })
       .andWhere('reviewImg.isMain=:isMain', { isMain: true })
@@ -210,8 +232,8 @@ export class ReviewRepository {
     const { cursor, limit } = reviewCategoryDto;
     const orderField = reviewCategoryDto.selectedOrder === 'D' ? 'createdDate' : 'totalLikedNum';
 
-    //todo 차단되지 않은 사용자들의 리뷰만 조회
-    //not in (findBlockedUsers(memberId))
+    //차단된 사용자 ID만 뽑기
+    const blockedIds = await this.findBlockedUsers(reviewCategoryDto.memberId);
 
     // 리뷰 ID만 먼저 조회 (중복 제거)
     const reviewIdQuery = this.review
@@ -220,6 +242,7 @@ export class ReviewRepository {
       .leftJoin(DessertCategory, 'dessertCategory', 'dessertCategory.dessertCategoryId = review.dessertCategoryDessertCategoryId')
       .where('review.isUsable = :isUsable', { isUsable: true })
       .andWhere('review.status = :status', { status: ReviewStatus.SAVED })
+      .andWhere(blockedIds.length > 0 ? 'review.memberId NOT IN (:...blockedIds)' : '1=1', { blockedIds })
       .andWhere('dessertCategory.dessertCategoryId = :dessertCategoryId', {
         dessertCategoryId: reviewCategoryDto.dessertCategoryId,
       })

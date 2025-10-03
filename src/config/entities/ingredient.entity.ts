@@ -3,10 +3,10 @@ import { ReviewIngredient } from './review.ingredient.entity';
 
 @Entity()
 export class Ingredient {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('increment', { type: 'number', name: 'ingredientId' })
   ingredientId: number;
 
-  @Column()
+  @Column({ unique: true })
   ingredientName: string;
 
   @Column({ default: true })

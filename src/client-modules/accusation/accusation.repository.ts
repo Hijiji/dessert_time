@@ -5,12 +5,14 @@ import { Repository } from 'typeorm';
 import { PostAccusationDto } from './dto/post.accusation.dto';
 import { AccusationRecordDto } from './dto/accusation.record.dto';
 import { Review } from 'src/config/entities/review.entity';
+import { BlockedMember } from 'src/config/entities/blocked.member.entity';
 
 @Injectable()
 export class AccusationRepository {
   constructor(
     @InjectRepository(Accusation) private accustion: Repository<Accusation>,
     @InjectRepository(Review) private review: Repository<Review>,
+    @InjectRepository(BlockedMember) private blockedMember: Repository<BlockedMember>,
   ) {}
 
   /**
@@ -54,5 +56,13 @@ export class AccusationRepository {
       },
       select: { accusationId: true },
     });
+  }
+
+  /**
+   * 차단 엔티티에 사용자 매핑
+   * @param postAccusationDto
+   */
+  async insertBlockedMember(postAccusationDto: PostAccusationDto) {
+    await this.blockedMember.insert({ blockedMemberId: postAccusationDto.blockedMemberId, primaryMemberId: postAccusationDto.memberId });
   }
 }
