@@ -97,8 +97,6 @@ export class ReviewService {
   @Transactional()
   async getHomeReviewImgList(memberIdDto: MemberIdDto) {
     //todo 차단되지 않은 사용자들의 리뷰만 조회
-    //not in (findBlockedUsers(memberId))
-    //정책 질문한 상황 - 카운팅 어케해야하는지 답변나오면 위 todo 적용
 
     try {
       // 사용자가 선호하는 카테고리의 2차 카테고리ID 목록 조회
@@ -111,7 +109,8 @@ export class ReviewService {
         const dessertCategoryList = memberInterestList.map((category) => category.dc_dessertCategoryId);
 
         if (dessertCategoryList.length > 0) {
-          const usableCategoryList = await this.reviewRepository.findUsablecategoryList(dessertCategoryList);
+          //차단되지 않은 사용자의 리뷰만 조회
+          const usableCategoryList = await this.reviewRepository.findUsablecategoryList(dessertCategoryList, memberIdDto.memberId);
 
           if (usableCategoryList && usableCategoryList.length > 0) {
             randomReviewCount -= usableCategoryList.length;
@@ -119,7 +118,7 @@ export class ReviewService {
             // 사용 가능한 카테고리가 있을 경우
             const mainCategoryList = await Promise.all(
               usableCategoryList.map(async (category) => {
-                const categoryReviewImgList = await this.reviewRepository.findReviewImgList(category['dc_dessertCategoryId']);
+                const categoryReviewImgList = await this.reviewRepository.findReviewImgList(category['dc_dessertCategoryId'], memberIdDto.memberId);
                 return {
                   dessertCategoryId: category['dc_dessertCategoryId'],
                   dessertName: category['dc_dessertName'],
@@ -134,12 +133,12 @@ export class ReviewService {
 
       if (randomReviewCount > 0) {
         //사용가능한 카테고리가 없거나 25개보다 적은경우
-        const randomCategoryList = await this.reviewRepository.findRandomCategoryList(randomReviewCount);
+        const randomCategoryList = await this.reviewRepository.findRandomCategoryList(randomReviewCount, memberIdDto.memberId);
         console.log('randomCategoryList ::', randomCategoryList);
 
         const mainRandomCategoryList = await Promise.all(
           randomCategoryList.map(async (category) => {
-            const randomCategoryReviewImgList = await this.reviewRepository.findRandomReviewImgList(category['dc_dessertCategoryId']);
+            const randomCategoryReviewImgList = await this.reviewRepository.findRandomReviewImgList(category['dc_dessertCategoryId'], memberIdDto.memberId);
             return {
               dessertCategoryId: category['dc_dessertCategoryId'],
               dessertName: category['dc_dessertName'],
@@ -163,6 +162,7 @@ export class ReviewService {
    */
   @Transactional()
   async findReviewCategoryList(reviewCategoryDto: ReviewCategoryDto) {
+    //todo
     try {
       let reviewCategoryList: any[] = await this.reviewRepository.findReviewCategoryList(reviewCategoryDto);
       const grouped = new Map();
