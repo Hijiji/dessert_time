@@ -192,5 +192,31 @@ describe('ReviewService', () => {
         ],
       });
     });
+  }); //describe 종료
+
+  /**
+   * 정책
+   * 1. reviewId를 받으면, 하나의 review를 조회한다.
+   * 2. 재료와 이미지파일은 중복되지 않게한다.
+   * 3. 존재하지 않는 reviewId를 조회할 때 400오류 발생 및 메세지전달
+   */
+  describe('findReviewOne', async () => {
+    it('reviewId를 받으면, 하나의 review를 조회한다.', () => {
+      //Arrange - 레포지토리 응답 값 생성
+      //Act - service.findReviewOne()
+      //Assert - expect()...
+    }); //it 종료
+
+    it('존재하지 않는 reviewId를 조회할 때 오류 발생', async () => {
+      //Arrange
+      //Act
+      //Assert
+    }); //it 종료
+
+    it('재료와 이미지파일은 중복되지 않게한다.', async () => {
+      //Arrange
+      //Act
+      //Assert
+    }); //it종료
   });
 });
