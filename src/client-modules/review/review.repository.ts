@@ -98,7 +98,7 @@ export class ReviewRepository {
       .leftJoin('member.uids', 'uids')
       .leftJoin(DessertCategory, 'dc', 'dc.parentDCId = uids.dcDessertCategoryId')
       .select('dc.dessertCategoryId')
-      .where('dc.sessionNum = :sessionNum', { sessionNum: 2 })
+      .where('dc.sessionNum = :sessionNum', { sessionNum: 1 })
       .andWhere('member.memberId =:memberId', { memberId: memberIdDto.memberId })
       .getRawMany();
   }
