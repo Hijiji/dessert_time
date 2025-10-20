@@ -97,7 +97,7 @@ export class ReviewService {
    */
   @Transactional()
   async getHomeReviewImgList(memberIdDto: MemberIdDto) {
-    //todo 차단되지 않은 사용자들의 리뷰만 조회
+    // 차단되지 않은 사용자들의 리뷰만 조회
 
     try {
       // 사용자가 선호하는 카테고리의 2차 카테고리ID 목록 조회
