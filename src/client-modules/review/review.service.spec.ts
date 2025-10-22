@@ -557,7 +557,7 @@ describe('ReviewService', () => {
 
     it('repository오류 반환', async () => {
       //Arrange
-      repository.findIngredientList.mockRejectedValue(new Error('재료목룍을 불러오지 못했습니다.'));
+      repository.findIngredientList.mockRejectedValue(new Error('DB 에러'));
 
       await expect(service.getIngredientList()).rejects.toThrow(InternalServerErrorException);
     }); //it
