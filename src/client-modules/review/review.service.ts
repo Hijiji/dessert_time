@@ -286,39 +286,6 @@ export class ReviewService {
   }
 
   /**
-   * 후기 작성 수정 및 작성완료
-   * @param reviewUpdateDto
-   * @returns
-   */
-  @Transactional()
-  async patchGenerableReview(reviewUpdateDto: ReviewUpdateDto) {
-    try {
-      // let ingredientList = [];
-      // if (reviewUpdateDto.reviewId) {
-      //   ingredientList = await this.reviewRepository.findReviewIngredient(reviewUpdateDto);
-      //   //1. 재료 삭제
-      //   if (ingredientList.length > 0) await this.reviewRepository.deleteReviewIngredient(reviewUpdateDto);
-      //   //2. 재료 저장
-      //   await this.saveIngredient(reviewUpdateDto);
-      // }
-
-      //리뷰 저장
-      const newReview = await this.reviewRepository.updateGenerableReview(reviewUpdateDto);
-      if (!reviewUpdateDto.reviewId) {
-        reviewUpdateDto.reviewId = newReview.reviewId;
-        await this.saveIngredient(reviewUpdateDto);
-      }
-      const updateAdminPointDto = new UpdateAdminPointDto(5, PointType.REVIEW);
-      console.log('updateAdminPointDto ::::::::::::::', updateAdminPointDto);
-      await this.adminPointService.processUpsertPointByReview(reviewUpdateDto.memberId, updateAdminPointDto, reviewUpdateDto.reviewId);
-
-      return { reviewId: newReview.reviewId };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
    * 재료 저장 로직
    * @param reviewUpdateDto
    */
@@ -335,6 +302,26 @@ export class ReviewService {
       throw error;
     }
   }
+
+  /**
+   * 후기 작성
+   * @param reviewUpdateDto
+   * @returns
+   */
+  @Transactional()
+  async patchGenerableReview(reviewUpdateDto: ReviewUpdateDto) {
+    //리뷰 저장
+    const newReview = await this.reviewRepository.updateGenerableReview(reviewUpdateDto);
+    //재료 저장
+    const ingredientDto = { ...reviewUpdateDto, reviewId: newReview.reviewId };
+    await this.saveIngredient(ingredientDto);
+    //포인트 저장
+    const updateAdminPointDto = new UpdateAdminPointDto(5, PointType.REVIEW);
+    await this.adminPointService.processUpsertPointByReview(reviewUpdateDto.memberId, updateAdminPointDto, reviewUpdateDto.reviewId);
+
+    return { reviewId: newReview.reviewId };
+  }
+
   /**
    * 리뷰 이미지 하나 저장
    * @param reviewImgSaveDto
