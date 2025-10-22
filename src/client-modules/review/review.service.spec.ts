@@ -13,6 +13,11 @@ import { Review } from 'src/config/entities/review.entity';
 import { Like } from 'src/config/entities/like.entity';
 import { ReviewIdDto } from './dto/review.id.dto';
 import { Ingredient } from 'src/config/entities/ingredient.entity';
+import { AdminPointRepository } from 'src/backoffice-modules/admin-point/admin-point.repository';
+import { AdminPointHistoryService } from 'src/backoffice-modules/admin-point-history/admin-point-history.service';
+import { AdminPointHistoryRepository } from 'src/backoffice-modules/admin-point-history/admin-point-history.repository';
+import { ReviewUpdateDto } from './dto/review.update.dto';
+import { ReviewStatus } from 'src/common/enum/review.enum';
 
 // 트랜잭션 초기화 : 실제 DB 트랜잭션을 걸지 않고 @Transaction이 동작하도록 준비함. 초기화함수.
 initializeTransactionalContext();
@@ -25,6 +30,7 @@ jest.mock('typeorm-transactional', () => ({
 describe('ReviewService', () => {
   let service: ReviewService;
   let repository: jest.Mocked<ReviewRepository>;
+  let adminPointService: jest.Mocked<AdminPointService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -49,12 +55,36 @@ describe('ReviewService', () => {
             incrementTotalLikeNum: jest.fn(),
             updateReviewStatus: jest.fn(),
             findIngredientList: jest.fn(),
+            insertReviewIngredient: jest.fn(),
+            updateGenerableReview: jest.fn(),
           },
         },
         {
           provide: AdminPointService,
           useValue: {
-            processUpsertPointByReview: jest.fn(), // ReviewService 안에서 실제 호출하는 메소드 이름에 맞게
+            processUpsertPointByReview: jest.fn(), // ReviewService 안에서 실제 호출하는 메소드
+          },
+        },
+        {
+          provide: AdminPointRepository,
+          useValue: {
+            insert: jest.fn(),
+            update: jest.fn(),
+          },
+        },
+
+        {
+          provide: AdminPointHistoryService,
+          useValue: {
+            upsert: jest.fn(),
+          },
+        },
+        {
+          provide: AdminPointHistoryRepository,
+          useValue: {
+            findMember: jest.fn(),
+            saveHistory: jest.fn(),
+            createAndSaveHistory: jest.fn(),
           },
         },
       ],
@@ -63,6 +93,7 @@ describe('ReviewService', () => {
     //test용 module에서 실제 service인스턴스를 가져옴
     service = module.get<ReviewService>(ReviewService);
     repository = module.get(ReviewRepository);
+    adminPointService = module.get(AdminPointService);
   });
 
   describe('getHomeReviewImgList', () => {
@@ -529,37 +560,78 @@ describe('ReviewService', () => {
    */
   describe('getIngredientList', () => {
     it('DB에 저장된 재료 전체 목록 조회', async () => {
-      //Arrange
       const mockIn = [
         { ingredientId: 1, ingredientName: '유제품' },
         { ingredientId: 2, ingredientName: '견과류' },
       ] as Ingredient[];
+
       repository.findIngredientList.mockResolvedValue(mockIn);
 
-      //Act
       const result = await service.getIngredientList();
 
-      //Assert
       expect(result).toEqual(mockIn);
     }); //it
 
     it('빈배열 정상조회', async () => {
-      //Arrange
       const mockIn = [] as Ingredient[];
       repository.findIngredientList.mockResolvedValue(mockIn);
 
-      //Act
       const result = await service.getIngredientList();
 
-      //Assert
       expect(result).toEqual(mockIn);
     }); //it
 
     it('repository오류 반환', async () => {
-      //Arrange
       repository.findIngredientList.mockRejectedValue(new Error('DB 에러'));
 
       await expect(service.getIngredientList()).rejects.toThrow(InternalServerErrorException);
     }); //it
   }); //desc
+
+  /**
+   * 후기 저장
+   * 1. 리뷰 업데이트
+   * 2. 리뷰Id 없으면 재료 먼저 저장
+   * 3. 5포인트 적립
+   */
+  describe('patchGenerableReview', () => {
+    it('리뷰 저장, 재료저장, 포인트 저장 호출되야함', async () => {
+      //Arrange
+      const ingredients = [1, 2];
+      const review = { reviewId: 1 } as Review;
+      const dto = {
+        memberId: 1,
+        reviewId: 1,
+        storeName: '온혜화',
+        menuName: '치즈케이크',
+        dessertCategoryId: 1,
+        score: 1,
+        ingredientId: ingredients,
+        content: '달콤쌉싸름',
+        status: 'saved',
+      } as ReviewUpdateDto;
+
+      const expectedSaveData = [
+        { ingredient: { ingredientId: 1 }, review: { reviewId: 1 } },
+        { ingredient: { ingredientId: 2 }, review: { reviewId: 1 } },
+      ];
+
+      repository.updateGenerableReview.mockResolvedValue(review);
+      repository.insertReviewIngredient.mockResolvedValue(undefined);
+      adminPointService.processUpsertPointByReview.mockResolvedValue(undefined);
+
+      //Act
+      const result = await service.patchGenerableReview(dto);
+      //Assert
+      expect(repository.updateGenerableReview).toHaveBeenCalledWith(dto);
+      expect(repository.insertReviewIngredient).toHaveBeenCalledWith(expectedSaveData);
+      expect(adminPointService.processUpsertPointByReview).toHaveBeenCalled();
+      expect(result).toEqual({ reviewId: 1 });
+    });
+    it('재료가 비어있는경우 insertReviewIngredient 호출하지 않음', async () => {
+      //Arrange
+      //Act
+      //Assert
+    });
+  });
 });
