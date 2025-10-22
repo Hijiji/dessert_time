@@ -7,6 +7,11 @@ import { ReviewService } from './review.service';
 import { ReviewCategoryDto } from './dto/review.category.dto';
 import { ReviewMemberIdDto } from './dto/review.member.dto';
 import { BadRequestException } from '@nestjs/common';
+import { LikeDto } from './dto/like.dto';
+import { Member } from 'src/config/entities/member.entity';
+import { Review } from 'src/config/entities/review.entity';
+import { Like } from 'src/config/entities/like.entity';
+import { ReviewIdDto } from './dto/review.id.dto';
 
 // 트랜잭션 초기화 : 실제 DB 트랜잭션을 걸지 않고 @Transaction이 동작하도록 준비함. 초기화함수.
 initializeTransactionalContext();
@@ -34,6 +39,14 @@ describe('ReviewService', () => {
             findRandomReviewImgList: jest.fn(),
             findReviewCategoryList: jest.fn(),
             findReviewOne: jest.fn(),
+            findMemberId: jest.fn(),
+            findReviewId: jest.fn(),
+            findLikeId: jest.fn(),
+            deleteReviewLike: jest.fn(),
+            decrementTotalLikeNum: jest.fn(),
+            insertReviewLike: jest.fn(),
+            incrementTotalLikeNum: jest.fn(),
+            updateReviewStatus: jest.fn(),
           },
         },
         {
@@ -382,7 +395,7 @@ describe('ReviewService', () => {
       const result = await service.findReviewOne(dto);
 
       //Assert - expect()...
-      expect(repository.findReviewOne).toHaveBeenCalledWith();
+      expect(repository.findReviewOne).toHaveBeenCalledWith(dto);
       expect(result).toEqual({
         reviewId: 15,
         totalLikedNum: 42,
@@ -415,4 +428,94 @@ describe('ReviewService', () => {
       });
     }); //it종료
   }); //describe
+
+  /**
+   * 정책
+   * 1. 리뷰가 이미 좋아요되어있으면 -> 좋아요취소
+   * 2. 리뷰가 좋아요 눌러있지 않으면 -> 좋아요
+   * 3. 리뷰,사용자 정보 없을 경우 BadRequestException
+   */
+  describe('postLikeItem', () => {
+    it('리뷰에 대한 좋아요 취소', async () => {
+      //Arrange
+      const dto: LikeDto = { memberId: 2, reviewId: 1, isLike: false };
+      const member = { memberId: 2 } as Member;
+      const review = { reviewId: 1 } as Review;
+      const like = { likeId: 1 } as Like;
+
+      repository.findMemberId.mockResolvedValue(member);
+      repository.findReviewId.mockResolvedValue(review);
+      repository.findLikeId.mockResolvedValue(like);
+      repository.deleteReviewLike.mockResolvedValue();
+      repository.decrementTotalLikeNum.mockResolvedValue();
+
+      //Act
+      const result = await service.postLikeItem(dto);
+
+      //Assert
+      expect(repository.deleteReviewLike).toHaveBeenCalledWith(like.likeId);
+      expect(repository.decrementTotalLikeNum).toHaveBeenCalledWith(dto);
+      expect(repository.insertReviewLike).not.toHaveBeenCalled();
+      expect(repository.incrementTotalLikeNum).not.toHaveBeenCalled();
+    }); //it
+
+    it('리뷰에 대한 좋아요 남기기', async () => {
+      //Arrange
+      const dto: LikeDto = { memberId: 2, reviewId: 1, isLike: true };
+      const member = { memberId: 2 } as Member;
+      const review = { reviewId: 1 } as Review;
+      const like = { likeId: 1 } as Like;
+
+      repository.findMemberId.mockResolvedValue(member);
+      repository.findReviewId.mockResolvedValue(review);
+      repository.insertReviewLike.mockResolvedValue();
+      repository.incrementTotalLikeNum.mockResolvedValue();
+
+      //Act
+      const result = await service.postLikeItem(dto);
+
+      //Assert
+      expect(repository.insertReviewLike).toHaveBeenCalledWith(dto);
+      expect(repository.incrementTotalLikeNum).toHaveBeenCalledWith(dto);
+      expect(repository.deleteReviewLike).not.toHaveBeenCalled();
+      expect(repository.decrementTotalLikeNum).not.toHaveBeenCalled();
+    }); //it
+
+    it('리뷰정보 없을경우 오류발생', async () => {
+      //Arrange
+      const dto: LikeDto = { memberId: 2, reviewId: 1, isLike: true };
+      const member = { memberId: 1 } as Member;
+      repository.findMemberId.mockResolvedValue(null);
+      repository.findMemberId.mockResolvedValue(member);
+      //Act, Assert
+      await expect(service.postLikeItem(dto)).rejects.toThrow(BadRequestException);
+    }); //it
+
+    it('사용자정보 없을경우 오류발생', async () => {
+      //Arrange
+      const dto: LikeDto = { memberId: 2, reviewId: 1, isLike: true };
+      const review = { reviewId: 1 } as Review;
+      repository.findReviewId.mockResolvedValue(review);
+      repository.findMemberId.mockResolvedValue(null);
+
+      //Act, Assert
+      await expect(service.postLikeItem(dto)).rejects.toThrow(BadRequestException);
+    }); //it
+  }); //describe
+
+  /**
+   * 등록된 리뷰 하나 삭제하기
+   * 1. 리뷰는 삭제가 아닌 숨김처리
+   * 2. 기존 리뷰의 포인트 삭감처리 - todo
+   */
+  describe('deleteReview', () => {
+    it('리뷰 삭제-숨김처리', async () => {
+      //Arrange
+      const dto = { reviewId: 1 } as ReviewIdDto;
+      //Act
+      const result = await service.deleteReview(dto);
+      //Assert
+      expect(repository.updateReviewStatus).toHaveBeenCalledWith(dto);
+    });
+  });
 });

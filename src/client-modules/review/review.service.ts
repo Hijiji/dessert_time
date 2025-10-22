@@ -259,7 +259,7 @@ export class ReviewService {
 
   /**
    * 등록한 리뷰 삭제하기
-   *  -- 리뷰 숨김, 포인트 삭감
+   *  todo -- 리뷰 숨김, 포인트 삭감
    * @param reviewIdDto
    * @returns
    */
