@@ -6,12 +6,13 @@ import { ReviewRepository } from './review.repository';
 import { ReviewService } from './review.service';
 import { ReviewCategoryDto } from './dto/review.category.dto';
 import { ReviewMemberIdDto } from './dto/review.member.dto';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { LikeDto } from './dto/like.dto';
 import { Member } from 'src/config/entities/member.entity';
 import { Review } from 'src/config/entities/review.entity';
 import { Like } from 'src/config/entities/like.entity';
 import { ReviewIdDto } from './dto/review.id.dto';
+import { Ingredient } from 'src/config/entities/ingredient.entity';
 
 // 트랜잭션 초기화 : 실제 DB 트랜잭션을 걸지 않고 @Transaction이 동작하도록 준비함. 초기화함수.
 initializeTransactionalContext();
@@ -47,6 +48,7 @@ describe('ReviewService', () => {
             insertReviewLike: jest.fn(),
             incrementTotalLikeNum: jest.fn(),
             updateReviewStatus: jest.fn(),
+            findIngredientList: jest.fn(),
           },
         },
         {
@@ -518,4 +520,46 @@ describe('ReviewService', () => {
       expect(repository.updateReviewStatus).toHaveBeenCalledWith(dto);
     });
   });
+
+  /**
+   * 재료목록 조회하기
+   * 1. 전체 목록 정상반환
+   * 2. 빈배열 정상 반환
+   * 3. 오류발생시 예외던짐
+   */
+  describe('getIngredientList', () => {
+    it('DB에 저장된 재료 전체 목록 조회', async () => {
+      //Arrange
+      const mockIn = [
+        { ingredientId: 1, ingredientName: '유제품' },
+        { ingredientId: 2, ingredientName: '견과류' },
+      ] as Ingredient[];
+      repository.findIngredientList.mockResolvedValue(mockIn);
+
+      //Act
+      const result = await service.getIngredientList();
+
+      //Assert
+      expect(result).toEqual(mockIn);
+    }); //it
+
+    it('빈배열 정상조회', async () => {
+      //Arrange
+      const mockIn = [] as Ingredient[];
+      repository.findIngredientList.mockResolvedValue(mockIn);
+
+      //Act
+      const result = await service.getIngredientList();
+
+      //Assert
+      expect(result).toEqual(mockIn);
+    }); //it
+
+    it('repository오류 반환', async () => {
+      //Arrange
+      repository.findIngredientList.mockRejectedValue(new Error('재료목룍을 불러오지 못했습니다.'));
+
+      await expect(service.getIngredientList()).rejects.toThrow(InternalServerErrorException);
+    }); //it
+  }); //desc
 });

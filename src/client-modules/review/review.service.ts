@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ReviewRepository } from './review.repository';
 import { ReviewCategoryDto } from './dto/review.category.dto';
 import { LikeDto } from './dto/like.dto';
@@ -273,18 +273,6 @@ export class ReviewService {
   }
 
   /**
-   * 재료 하나 생성하기
-   */
-  @Transactional()
-  async postIngredientList(ingredientNameDto: IngredientNameDto) {
-    try {
-      await this.reviewRepository.insertIngredientList(ingredientNameDto);
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
    * 재료 목록 조회
    * @returns
    */
@@ -293,7 +281,7 @@ export class ReviewService {
     try {
       return await this.reviewRepository.findIngredientList();
     } catch (error) {
-      throw error;
+      throw new InternalServerErrorException('재료 목록을 불러오지 못했습니다.');
     }
   }
 
@@ -642,6 +630,20 @@ export class ReviewService {
       //마지막. 리뷰 저장
       const review = await this.reviewRepository.updateGenerableReview(reviewSaveDto);
       return { reviewId: review.reviewId };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  //-개발기능-//
+
+  /**
+   * 재료 하나 생성하기
+   */
+  @Transactional()
+  async postIngredientList(ingredientNameDto: IngredientNameDto) {
+    try {
+      await this.reviewRepository.insertIngredientList(ingredientNameDto);
     } catch (error) {
       throw error;
     }
