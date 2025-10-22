@@ -58,46 +58,6 @@ export class ReviewController {
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '후기작성가능한 총 후기 갯수' })
-  @Get('generable/count/:memberId')
-  async getGenerableReviewCount(@Query() memberIdDto: MemberIdDto) {
-    return await this.reviewService.getGenerableReviewCount(memberIdDto);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: '이번달, 후기 작성가능한 일수' })
-  @Get('generable/date')
-  async getGenerableReviewDate() {
-    return await this.reviewService.getGenerableReviewDate();
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: '후기 작성가능한 후기 목록' })
-  @Get('generable/list/:memberId')
-  async getGenerableReviewList(@Param() memberIdPagingDto: MemberIdPagingDto) {
-    return await this.reviewService.getGenerableReviewList(memberIdPagingDto);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: '후기 작성목록 등록' })
-  @Post('generable/list')
-  async postGernerableReviewList(@Body() reviewCreateDto: ReviewCreateDto) {
-    return await this.reviewService.postGenerableReviewList(reviewCreateDto);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: '작성 가능한 후기 하나 삭제' })
-  @Delete('generable')
-  async deleteGenerableReview(@Param() reviewIdDto: ReviewIdDto) {
-    return await this.reviewService.deleteGenerableReview(reviewIdDto);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: '등록된 내 후기 하나 삭제' })
   @Delete(':reviewId')
   async deleteReview(@Param() reviewIdDto: ReviewIdDto) {
@@ -111,22 +71,6 @@ export class ReviewController {
   async getIngredientList() {
     return await this.reviewService.getIngredientList();
   }
-
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: '후기작성 - 작성가능한 후기 하나 조회' })
-  @Get('generable/:reviewId')
-  async getGenerableReview(@Param() reviewIdDto: ReviewIdDto) {
-    return await this.reviewService.getGenerableReview(reviewIdDto);
-  }
-
-  // @UseGuards(JwtAuthGuard)
-  // @ApiBearerAuth()
-  // @ApiOperation({ summary: '후기작성 - 후기 하나 생성 및 수정 (뒤로가기)' })
-  // @Post('generable')
-  // async postGenerableReview(@Body() reviewSaveDto: ReviewSaveDto) {
-  //   return await this.reviewService.postGenerableReview(reviewSaveDto);
-  // }
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -172,4 +116,62 @@ export class ReviewController {
   async updateReviewImg(@Body() updateReviewImgListDto: UpdateReviewImgListDto) {
     await this.reviewService.updateReviewImg(updateReviewImgListDto);
   }
+
+  //--------리뷰 저장 전 추가/관리 기능------//
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '작성 가능한 후기 하나 삭제' })
+  @Delete('generable')
+  async deleteGenerableReview(@Param() reviewIdDto: ReviewIdDto) {
+    return await this.reviewService.deleteGenerableReview(reviewIdDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '후기작성가능한 총 후기 갯수' })
+  @Get('generable/count/:memberId')
+  async getGenerableReviewCount(@Query() memberIdDto: MemberIdDto) {
+    return await this.reviewService.getGenerableReviewCount(memberIdDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '이번달, 후기 작성가능한 일수' })
+  @Get('generable/date')
+  async getGenerableReviewDate() {
+    return await this.reviewService.getGenerableReviewDate();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '후기 작성가능한 후기 목록' })
+  @Get('generable/list/:memberId')
+  async getGenerableReviewList(@Param() memberIdPagingDto: MemberIdPagingDto) {
+    return await this.reviewService.getGenerableReviewList(memberIdPagingDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '후기 작성목록 등록' })
+  @Post('generable/list')
+  async postGernerableReviewList(@Body() reviewCreateDto: ReviewCreateDto) {
+    return await this.reviewService.postGenerableReviewList(reviewCreateDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '후기작성 - 작성가능한 후기 하나 조회' })
+  @Get('generable/:reviewId')
+  async getGenerableReview(@Param() reviewIdDto: ReviewIdDto) {
+    return await this.reviewService.getGenerableReview(reviewIdDto);
+  }
+
+  // @UseGuards(JwtAuthGuard)
+  // @ApiBearerAuth()
+  // @ApiOperation({ summary: '후기작성 - 후기 하나 생성 및 수정 (뒤로가기)' })
+  // @Post('generable')
+  // async postGenerableReview(@Body() reviewSaveDto: ReviewSaveDto) {
+  //   return await this.reviewService.postGenerableReview(reviewSaveDto);
+  // }
 }

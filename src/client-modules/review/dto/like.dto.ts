@@ -19,6 +19,7 @@ export class LikeDto {
   @IsNotEmpty()
   readonly reviewId: number;
 
+  //todo false와 true 둘 다 받을 필요없다.
   @Transform((value) => {
     return value.value == 'true' ? true : false;
   })
