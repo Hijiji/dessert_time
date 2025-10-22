@@ -40,6 +40,13 @@ export class ReviewService {
       //todo 차단여부 확인하여 접근 가능여부 판단 로직 추가
       //not in (findBlockedUsers(memberId))
       const rawReviews = await this.reviewRepository.findReviewOne(reviewMemberIdDto);
+      console.log('rawReviews ::', rawReviews);
+      if (rawReviews.length < 1) {
+        throw new BadRequestException('존재하지 않는 정보', {
+          cause: new Error(),
+          description: '입력하신 리뷰 혹은 회원이 존재하지 않습니다',
+        });
+      }
       const review = rawReviews.reduce((result, row) => {
         if (!result.reviewId) {
           Object.assign(result, {

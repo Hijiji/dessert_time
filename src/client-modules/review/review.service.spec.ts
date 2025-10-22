@@ -5,6 +5,8 @@ import { MemberIdDto } from './dto/member.id.dto';
 import { ReviewRepository } from './review.repository';
 import { ReviewService } from './review.service';
 import { ReviewCategoryDto } from './dto/review.category.dto';
+import { ReviewMemberIdDto } from './dto/review.member.dto';
+import { BadRequestException } from '@nestjs/common';
 
 // 트랜잭션 초기화 : 실제 DB 트랜잭션을 걸지 않고 @Transaction이 동작하도록 준비함. 초기화함수.
 initializeTransactionalContext();
@@ -31,6 +33,7 @@ describe('ReviewService', () => {
             findRandomCategoryList: jest.fn(),
             findRandomReviewImgList: jest.fn(),
             findReviewCategoryList: jest.fn(),
+            findReviewOne: jest.fn(),
           },
         },
         {
@@ -200,23 +203,216 @@ describe('ReviewService', () => {
    * 2. 재료와 이미지파일은 중복되지 않게한다.
    * 3. 존재하지 않는 reviewId를 조회할 때 400오류 발생 및 메세지전달
    */
-  describe('findReviewOne', async () => {
-    it('reviewId를 받으면, 하나의 review를 조회한다.', () => {
+  describe('findReviewOne', () => {
+    it('reviewId를 받으면, 하나의 review를 조회한다.', async () => {
+      const dto: ReviewMemberIdDto = { reviewId: 15, memberId: 7 };
+
       //Arrange - 레포지토리 응답 값 생성
+      repository.findReviewOne.mockResolvedValue([
+        {
+          reviewId: 15,
+          totalLikedNum: 42,
+          menuName: '딸기 크림 케이크',
+          content: '생크림이 부드럽고 딸기 향이 진해요.',
+          storeName: '스위트베리카페',
+          score: 4.5,
+          createdDate: new Date('2025-10-20T00:00:00Z'),
+          dessertCategoryId: 3,
+
+          memberNickName: '달콤이',
+          memberId: 7,
+          memberIsHavingImg: true,
+
+          PROFILEIMGMIDDLEPATH: '/profiles/2025/10/',
+          PROFILEIMGPATH: '7_profile',
+          PROFILEIMGEXTENTION: '.jpg',
+
+          reviewImgIsMain: true,
+          reviewImgNum: 1,
+          reviewImgMiddlepath: '/reviews/2025/10/',
+          reviewImgPath: '15_1',
+          reviewImgExtention: '.png',
+
+          ingredientName: '딸기',
+          isLiked: 1,
+        },
+        {
+          reviewId: 15,
+          totalLikedNum: 42,
+          menuName: '딸기 크림 케이크',
+          content: '생크림이 부드럽고 딸기 향이 진해요.',
+          storeName: '스위트베리카페',
+          score: 4.5,
+          createdDate: new Date('2025-10-20T00:00:00Z'),
+          dessertCategoryId: 3,
+
+          memberNickName: '달콤이',
+          memberId: 7,
+          memberIsHavingImg: true,
+
+          PROFILEIMGMIDDLEPATH: '/profiles/2025/10/',
+          PROFILEIMGPATH: '7_profile',
+          PROFILEIMGEXTENTION: '.jpg',
+
+          reviewImgIsMain: false,
+          reviewImgNum: 2,
+          reviewImgMiddlepath: '/reviews/2025/10/',
+          reviewImgPath: '15_2',
+          reviewImgExtention: '.png',
+
+          ingredientName: '생크림',
+          isLiked: 1,
+        },
+      ]);
+
       //Act - service.findReviewOne()
+      const result = await service.findReviewOne(dto);
+
       //Assert - expect()...
+      expect(result).toEqual({
+        reviewId: 15,
+        totalLikedNum: 42,
+        menuName: '딸기 크림 케이크',
+        content: '생크림이 부드럽고 딸기 향이 진해요.',
+        storeName: '스위트베리카페',
+        score: 4.5,
+        createdDate: new Date('2025-10-20T00:00:00Z'),
+        dessertCategoryId: 3,
+
+        memberNickName: '달콤이',
+        memberId: 7,
+        memberIsHavingImg: true,
+
+        profileImgMiddlePath: '/profiles/2025/10/',
+        profileImgPath: '7_profile',
+        profileImgExtension: '.jpg',
+        isLiked: 1,
+
+        reviewImg: [
+          {
+            reviewImgIsMain: true,
+            reviewImgNum: 1,
+            reviewImgMiddlepath: '/reviews/2025/10/',
+            reviewImgPath: '15_1',
+            reviewImgExtention: '.png',
+          },
+          {
+            reviewImgIsMain: false,
+            reviewImgNum: 2,
+            reviewImgMiddlepath: '/reviews/2025/10/',
+            reviewImgPath: '15_2',
+            reviewImgExtention: '.png',
+          },
+        ],
+        ingredients: ['딸기', '생크림'],
+      });
     }); //it 종료
 
     it('존재하지 않는 reviewId를 조회할 때 오류 발생', async () => {
+      const dto: ReviewMemberIdDto = { reviewId: 4512142412124, memberId: 2 };
       //Arrange
-      //Act
-      //Assert
+      repository.findReviewOne.mockResolvedValue([]);
+      //Act + Assert
+      //await를 먼저 사용하면 service.findReviewOne(dto)에서 이미 예외가 던져지고, 테스트 코드 자체에서 즉시 throw됨 ! 한번에 써야함
+      await expect(service.findReviewOne(dto)).rejects.toThrow(BadRequestException);
     }); //it 종료
 
     it('재료와 이미지파일은 중복되지 않게한다.', async () => {
-      //Arrange
-      //Act
-      //Assert
+      const dto: ReviewMemberIdDto = { reviewId: 15, memberId: 7 };
+
+      //Arrange - 레포지토리 응답 값 생성
+      repository.findReviewOne.mockResolvedValue([
+        {
+          reviewId: 15,
+          totalLikedNum: 42,
+          menuName: '딸기 크림 케이크',
+          content: '생크림이 부드럽고 딸기 향이 진해요.',
+          storeName: '스위트베리카페',
+          score: 4.5,
+          createdDate: new Date('2025-10-20T00:00:00Z'),
+          dessertCategoryId: 3,
+
+          memberNickName: '달콤이',
+          memberId: 7,
+          memberIsHavingImg: true,
+
+          PROFILEIMGMIDDLEPATH: '/profiles/2025/10/',
+          PROFILEIMGPATH: '7_profile',
+          PROFILEIMGEXTENTION: '.jpg',
+
+          reviewImgIsMain: false,
+          reviewImgNum: 2,
+          reviewImgMiddlepath: '/reviews/2025/10/',
+          reviewImgPath: '15_2',
+          reviewImgExtention: '.png',
+
+          ingredientName: '딸기',
+          isLiked: 1,
+        },
+        {
+          reviewId: 15,
+          totalLikedNum: 42,
+          menuName: '딸기 크림 케이크',
+          content: '생크림이 부드럽고 딸기 향이 진해요.',
+          storeName: '스위트베리카페',
+          score: 4.5,
+          createdDate: new Date('2025-10-20T00:00:00Z'),
+          dessertCategoryId: 3,
+
+          memberNickName: '달콤이',
+          memberId: 7,
+          memberIsHavingImg: true,
+
+          PROFILEIMGMIDDLEPATH: '/profiles/2025/10/',
+          PROFILEIMGPATH: '7_profile',
+          PROFILEIMGEXTENTION: '.jpg',
+
+          reviewImgIsMain: false,
+          reviewImgNum: 2,
+          reviewImgMiddlepath: '/reviews/2025/10/',
+          reviewImgPath: '15_2',
+          reviewImgExtention: '.png',
+
+          ingredientName: '딸기',
+          isLiked: 1,
+        },
+      ]);
+
+      //Act - service.findReviewOne()
+      const result = await service.findReviewOne(dto);
+
+      //Assert - expect()...
+      expect(repository.findReviewOne).toHaveBeenCalledWith();
+      expect(result).toEqual({
+        reviewId: 15,
+        totalLikedNum: 42,
+        menuName: '딸기 크림 케이크',
+        content: '생크림이 부드럽고 딸기 향이 진해요.',
+        storeName: '스위트베리카페',
+        score: 4.5,
+        createdDate: new Date('2025-10-20T00:00:00Z'),
+        dessertCategoryId: 3,
+
+        memberNickName: '달콤이',
+        memberId: 7,
+        memberIsHavingImg: true,
+
+        profileImgMiddlePath: '/profiles/2025/10/',
+        profileImgPath: '7_profile',
+        profileImgExtension: '.jpg',
+        isLiked: 1,
+
+        reviewImg: [
+          {
+            reviewImgIsMain: false,
+            reviewImgNum: 2,
+            reviewImgMiddlepath: '/reviews/2025/10/',
+            reviewImgPath: '15_2',
+            reviewImgExtention: '.png',
+          },
+        ],
+        ingredients: ['딸기'],
+      });
     }); //it종료
-  });
+  }); //describe
 });
