@@ -862,6 +862,33 @@ describe('ReviewService', () => {
       //Act
       // const result = await service.getLikedReviewList(dto);
       //Assert
-    });
-  });
+    }); //it
+  }); //describe
+
+  /**
+   * 리뷰이미지 하나 저장 정책
+   * 1. 리뷰아이디 필수
+   * 2. 해당 리뷰아이디의 이미지 갯수 확인 -> 4개 넘으면 오류반환
+   * 3. 이미지 하나 저장
+   */
+  describe('postReviewImg', () => {
+    it('', async () => {}); //it
+  }); //describe
+
+  /**
+   * 리뷰이미지 하나 삭제 정책
+   * 1. 이미지 삭제시 파일도 같이 삭제
+   */
+  describe('deleteReviewImg', () => {
+    it('', async () => {}); //it
+  }); //describe
+
+  /**
+   * 리뷰이미지 순서 변경 정책
+   * 1. 메인과 순서 수정
+   * 2. 변경할 리뷰이미지 정보와 기존 리뷰이미지 정보 매핑 -> 수정
+   */
+  describe('updateReviewImg', () => {
+    it('', async () => {}); //it
+  }); //describe
 });
