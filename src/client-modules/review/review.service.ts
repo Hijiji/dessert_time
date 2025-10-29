@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ReviewRepository } from './review.repository';
 import { ReviewCategoryDto } from './dto/review.category.dto';
 import { LikeDto } from './dto/like.dto';
@@ -40,6 +40,13 @@ export class ReviewService {
       //todo 차단여부 확인하여 접근 가능여부 판단 로직 추가
       //not in (findBlockedUsers(memberId))
       const rawReviews = await this.reviewRepository.findReviewOne(reviewMemberIdDto);
+      console.log('rawReviews ::', rawReviews);
+      if (rawReviews.length < 1) {
+        throw new BadRequestException('존재하지 않는 정보', {
+          cause: new Error(),
+          description: '입력하신 리뷰 혹은 회원이 존재하지 않습니다',
+        });
+      }
       const review = rawReviews.reduce((result, row) => {
         if (!result.reviewId) {
           Object.assign(result, {
@@ -230,120 +237,29 @@ export class ReviewService {
    */
   @Transactional()
   async postLikeItem(likeDto: LikeDto) {
-    try {
-      const isMemberData = await this.reviewRepository.findMemberId(likeDto);
-      const isReviewData = await this.reviewRepository.findReviewId(likeDto);
+    const isMemberData = await this.reviewRepository.findMemberId(likeDto);
+    const isReviewData = await this.reviewRepository.findReviewId(likeDto);
 
-      if (isMemberData && isReviewData) {
-        if (likeDto.isLike === false) {
-          const isLikedData = await this.reviewRepository.findLikeId(likeDto);
-          if (isLikedData) {
-            await this.reviewRepository.deleteReviewLike(isLikedData.likeId);
-            await this.reviewRepository.decrementTotalLikeNum(likeDto);
-          }
-        } else if (likeDto.isLike === true) {
-          await this.reviewRepository.insertReviewLike(likeDto);
-          await this.reviewRepository.incrementTotalLikeNum(likeDto);
-        }
-      } else {
-        throw new BadRequestException('존재하지 않는 정보', {
-          cause: new Error(),
-          description: '입력하신 리뷰 혹은 회원이 존재하지 않습니다',
-        });
-      }
-    } catch (error) {
-      throw error;
+    if (!isMemberData || !isReviewData) {
+      throw new BadRequestException('존재하지 않는 정보', {
+        cause: new Error(),
+        description: '입력하신 리뷰 혹은 회원이 존재하지 않습니다',
+      });
     }
-  }
-
-  /**
-   * 리뷰작성가능한 후기 갯수 조회
-   * @param memberIdDto
-   * @returns
-   */
-  @Transactional()
-  async getGenerableReviewCount(memberIdDto: MemberIdDto) {
-    try {
-      const generableReviewCount = await this.reviewRepository.findGenerableReviewCount(memberIdDto);
-      return { generableReviewCount };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * 후기 작성 가능한 일수
-   * @param memberIdDto
-   * @returns
-   */
-  @Transactional()
-  async getGenerableReviewDate() {
-    try {
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = today.getMonth();
-      const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
-      const currentDay = today.getDate();
-      // 남은 일수 계산
-      const remainingDays = lastDayOfMonth - currentDay;
-
-      return { remainingDays };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * 후기작성 가능한 후기목록 조회
-   * @param memberIdDto 
-
-   * @returns
-   */
-  @Transactional()
-  async getGenerableReviewList(memberIdPagingDto: MemberIdPagingDto) {
-    try {
-      //한달 넘은 후기는 삭제?
-      return await this.reviewRepository.findGenerableReviewList(memberIdPagingDto);
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * 후기 작성 목록 등록
-   * @param reviewCreateDto
-   */
-  @Transactional()
-  async postGenerableReviewList(reviewCreateDto: ReviewCreateDto) {
-    try {
-      const insertData = reviewCreateDto.menuNames.map((menuName) => ({
-        storeName: reviewCreateDto.storeName,
-        member: { memberId: reviewCreateDto.memberId },
-        menuName,
-      }));
-      await this.reviewRepository.insertGenerableReviewList(insertData);
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * 리뷰 하나 완전 삭제
-   * @param reviewIdDto
-   * @returns
-   */
-  @Transactional()
-  async deleteGenerableReview(reviewIdDto: ReviewIdDto) {
-    try {
-      return await this.reviewRepository.deleteGenerableReview(reviewIdDto);
-    } catch (error) {
-      throw error;
+    if (likeDto.isLike) {
+      await this.reviewRepository.insertReviewLike(likeDto);
+      await this.reviewRepository.incrementTotalLikeNum(likeDto);
+    } else {
+      const isLikedData = await this.reviewRepository.findLikeId(likeDto);
+      if (!isLikedData) return;
+      await this.reviewRepository.deleteReviewLike(isLikedData.likeId);
+      await this.reviewRepository.decrementTotalLikeNum(likeDto);
     }
   }
 
   /**
    * 등록한 리뷰 삭제하기
-   *  -- 리뷰 숨김, 포인트 삭감
+   *  todo -- 리뷰 숨김, 포인트 삭감
    * @param reviewIdDto
    * @returns
    */
@@ -351,18 +267,6 @@ export class ReviewService {
   async deleteReview(reviewIdDto: ReviewIdDto) {
     try {
       await this.reviewRepository.updateReviewStatus(reviewIdDto);
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * 재료 하나 생성하기
-   */
-  @Transactional()
-  async postIngredientList(ingredientNameDto: IngredientNameDto) {
-    try {
-      await this.reviewRepository.insertIngredientList(ingredientNameDto);
     } catch (error) {
       throw error;
     }
@@ -377,117 +281,7 @@ export class ReviewService {
     try {
       return await this.reviewRepository.findIngredientList();
     } catch (error) {
-      throw error;
-    }
-  }
-  /**
-   * 작성 가능한 후기 하나 조회
-   * @param reviewIdDto
-   * @returns
-   */
-  @Transactional()
-  async getGenerableReview(reviewIdDto: ReviewIdDto) {
-    try {
-      const reviewData = await this.reviewRepository.findGenerableReview(reviewIdDto);
-      const resultData = {};
-      if (reviewData) {
-        resultData['reviewId'] = reviewData.reviewId;
-        resultData['content'] = reviewData.content;
-        resultData['menuName'] = reviewData.menuName;
-        resultData['storeName'] = reviewData.storeName;
-        resultData['score'] = reviewData.score;
-        resultData['dessertCategory'] = { dessertCategoryId: reviewData.dessertCategory?.dessertCategoryId, dessertName: reviewData.dessertCategory?.dessertName };
-
-        if (reviewData.reviewImg.length > 0) {
-          const reviewImg = reviewData.reviewImg.map((imgData) => {
-            return {
-              reviewImgId: imgData.reviewImgId,
-              middlepath: imgData.middlepath,
-              path: imgData.path,
-              extention: imgData.extention,
-              imgName: imgData.imgName,
-              isMain: imgData.isMain,
-              num: imgData.num,
-            };
-          });
-          resultData['reviewImg'] = reviewImg;
-        }
-
-        if (reviewData.reviewIngredients.length > 0) {
-          const reviewIngredients = reviewData.reviewIngredients.map((ingredientData) => {
-            return {
-              reviewIngredientId: ingredientData.reviewIngredientId,
-              ingredientId: ingredientData.ingredient.ingredientId,
-              ingredientName: ingredientData.ingredient.ingredientName,
-            };
-          });
-          resultData['reviewIngredients'] = reviewIngredients;
-        }
-      }
-      return resultData;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * 후기 하나 생성 및 수정
-   * @param reviewUpdateDto
-   * @returns
-   */
-  @Transactional()
-  async postGenerableReview(reviewSaveDto: ReviewSaveDto) {
-    try {
-      const { content, status, menuName, score, storeName, reviewId, memberId, dessertCategoryId } = reviewSaveDto;
-
-      if (dessertCategoryId && reviewId) {
-        //1. 재료 삭제
-        const ingredientList = await this.reviewRepository.findReviewIngredient(reviewSaveDto);
-        if (ingredientList.length > 0) await this.reviewRepository.deleteReviewIngredient(reviewSaveDto);
-        //2. 재료 저장
-        if (reviewSaveDto.ingredientId.length > 0) {
-          const saveReviewIngre = reviewSaveDto.ingredientId.map((data) => ({ ingredient: { ingredientId: data }, review: { reviewId: reviewSaveDto.reviewId } }));
-          await this.reviewRepository.insertReviewIngredient(saveReviewIngre);
-        }
-      }
-      //마지막. 리뷰 저장
-      const review = await this.reviewRepository.updateGenerableReview(reviewSaveDto);
-      return { reviewId: review.reviewId };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * 후기 작성 수정 및 작성완료
-   * @param reviewUpdateDto
-   * @returns
-   */
-  @Transactional()
-  async patchGenerableReview(reviewUpdateDto: ReviewUpdateDto) {
-    try {
-      // let ingredientList = [];
-      // if (reviewUpdateDto.reviewId) {
-      //   ingredientList = await this.reviewRepository.findReviewIngredient(reviewUpdateDto);
-      //   //1. 재료 삭제
-      //   if (ingredientList.length > 0) await this.reviewRepository.deleteReviewIngredient(reviewUpdateDto);
-      //   //2. 재료 저장
-      //   await this.saveIngredient(reviewUpdateDto);
-      // }
-
-      //리뷰 저장
-      const newReview = await this.reviewRepository.updateGenerableReview(reviewUpdateDto);
-      if (!reviewUpdateDto.reviewId) {
-        reviewUpdateDto.reviewId = newReview.reviewId;
-        await this.saveIngredient(reviewUpdateDto);
-      }
-      const updateAdminPointDto = new UpdateAdminPointDto(5, PointType.REVIEW);
-      console.log('updateAdminPointDto ::::::::::::::', updateAdminPointDto);
-      await this.adminPointService.processUpsertPointByReview(reviewUpdateDto.memberId, updateAdminPointDto, reviewUpdateDto.reviewId);
-
-      return { reviewId: newReview.reviewId };
-    } catch (error) {
-      throw error;
+      throw new InternalServerErrorException('재료 목록을 불러오지 못했습니다.');
     }
   }
 
@@ -508,6 +302,26 @@ export class ReviewService {
       throw error;
     }
   }
+
+  /**
+   * 후기 작성
+   * @param reviewUpdateDto
+   * @returns
+   */
+  @Transactional()
+  async patchGenerableReview(reviewUpdateDto: ReviewUpdateDto) {
+    //리뷰 저장
+    const newReview = await this.reviewRepository.updateGenerableReview(reviewUpdateDto);
+    //재료 저장
+    const ingredientDto = { ...reviewUpdateDto, reviewId: newReview.reviewId };
+    await this.saveIngredient(ingredientDto);
+    //포인트 저장
+    const updateAdminPointDto = new UpdateAdminPointDto(5, PointType.REVIEW);
+    await this.adminPointService.processUpsertPointByReview(reviewUpdateDto.memberId, updateAdminPointDto, reviewUpdateDto.reviewId);
+
+    return { reviewId: newReview.reviewId };
+  }
+
   /**
    * 리뷰 이미지 하나 저장
    * @param reviewImgSaveDto
@@ -638,6 +452,185 @@ export class ReviewService {
         }
       });
       return new ResponseCursorPagination(Array.from(grouped.values()), reviewsRequestDto.limit, 'reviewId');
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  //--------리뷰 저장 전 추가/관리 기능------//
+
+  /**
+   * 리뷰작성가능한 후기 갯수 조회
+   * @param memberIdDto
+   * @returns
+   */
+  @Transactional()
+  async getGenerableReviewCount(memberIdDto: MemberIdDto) {
+    try {
+      const generableReviewCount = await this.reviewRepository.findGenerableReviewCount(memberIdDto);
+      return { generableReviewCount };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 후기 작성 가능한 일수
+   * @param memberIdDto
+   * @returns
+   */
+  @Transactional()
+  async getGenerableReviewDate() {
+    try {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+      const currentDay = today.getDate();
+      // 남은 일수 계산
+      const remainingDays = lastDayOfMonth - currentDay;
+
+      return { remainingDays };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 후기작성 가능한 후기목록 조회
+   * @param memberIdDto 
+
+   * @returns
+   */
+  @Transactional()
+  async getGenerableReviewList(memberIdPagingDto: MemberIdPagingDto) {
+    try {
+      //한달 넘은 후기는 삭제?
+      return await this.reviewRepository.findGenerableReviewList(memberIdPagingDto);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 후기 작성 목록 등록
+   * @param reviewCreateDto
+   */
+  @Transactional()
+  async postGenerableReviewList(reviewCreateDto: ReviewCreateDto) {
+    try {
+      const insertData = reviewCreateDto.menuNames.map((menuName) => ({
+        storeName: reviewCreateDto.storeName,
+        member: { memberId: reviewCreateDto.memberId },
+        menuName,
+      }));
+      await this.reviewRepository.insertGenerableReviewList(insertData);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 작성 가능한 후기 하나 조회
+   * @param reviewIdDto
+   * @returns
+   */
+  @Transactional()
+  async getGenerableReview(reviewIdDto: ReviewIdDto) {
+    try {
+      const reviewData = await this.reviewRepository.findGenerableReview(reviewIdDto);
+      const resultData = {};
+      if (reviewData) {
+        resultData['reviewId'] = reviewData.reviewId;
+        resultData['content'] = reviewData.content;
+        resultData['menuName'] = reviewData.menuName;
+        resultData['storeName'] = reviewData.storeName;
+        resultData['score'] = reviewData.score;
+        resultData['dessertCategory'] = { dessertCategoryId: reviewData.dessertCategory?.dessertCategoryId, dessertName: reviewData.dessertCategory?.dessertName };
+
+        if (reviewData.reviewImg.length > 0) {
+          const reviewImg = reviewData.reviewImg.map((imgData) => {
+            return {
+              reviewImgId: imgData.reviewImgId,
+              middlepath: imgData.middlepath,
+              path: imgData.path,
+              extention: imgData.extention,
+              imgName: imgData.imgName,
+              isMain: imgData.isMain,
+              num: imgData.num,
+            };
+          });
+          resultData['reviewImg'] = reviewImg;
+        }
+
+        if (reviewData.reviewIngredients.length > 0) {
+          const reviewIngredients = reviewData.reviewIngredients.map((ingredientData) => {
+            return {
+              reviewIngredientId: ingredientData.reviewIngredientId,
+              ingredientId: ingredientData.ingredient.ingredientId,
+              ingredientName: ingredientData.ingredient.ingredientName,
+            };
+          });
+          resultData['reviewIngredients'] = reviewIngredients;
+        }
+      }
+      return resultData;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 작성 가능한 리뷰 하나 완전 삭제
+   * @param reviewIdDto
+   * @returns
+   */
+  @Transactional()
+  async deleteGenerableReview(reviewIdDto: ReviewIdDto) {
+    try {
+      return await this.reviewRepository.deleteGenerableReview(reviewIdDto);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * 후기 하나 생성 및 수정
+   * @param reviewUpdateDto
+   * @returns
+   */
+  @Transactional()
+  async postGenerableReview(reviewSaveDto: ReviewSaveDto) {
+    try {
+      const { content, status, menuName, score, storeName, reviewId, memberId, dessertCategoryId } = reviewSaveDto;
+
+      if (dessertCategoryId && reviewId) {
+        //1. 재료 삭제
+        const ingredientList = await this.reviewRepository.findReviewIngredient(reviewSaveDto);
+        if (ingredientList.length > 0) await this.reviewRepository.deleteReviewIngredient(reviewSaveDto);
+        //2. 재료 저장
+        if (reviewSaveDto.ingredientId.length > 0) {
+          const saveReviewIngre = reviewSaveDto.ingredientId.map((data) => ({ ingredient: { ingredientId: data }, review: { reviewId: reviewSaveDto.reviewId } }));
+          await this.reviewRepository.insertReviewIngredient(saveReviewIngre);
+        }
+      }
+      //마지막. 리뷰 저장
+      const review = await this.reviewRepository.updateGenerableReview(reviewSaveDto);
+      return { reviewId: review.reviewId };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  //-개발기능-//
+
+  /**
+   * 재료 하나 생성하기
+   */
+  @Transactional()
+  async postIngredientList(ingredientNameDto: IngredientNameDto) {
+    try {
+      await this.reviewRepository.insertIngredientList(ingredientNameDto);
     } catch (error) {
       throw error;
     }

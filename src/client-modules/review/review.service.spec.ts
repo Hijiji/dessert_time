@@ -5,6 +5,20 @@ import { MemberIdDto } from './dto/member.id.dto';
 import { ReviewRepository } from './review.repository';
 import { ReviewService } from './review.service';
 import { ReviewCategoryDto } from './dto/review.category.dto';
+import { ReviewMemberIdDto } from './dto/review.member.dto';
+import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { LikeDto } from './dto/like.dto';
+import { Member } from 'src/config/entities/member.entity';
+import { Review } from 'src/config/entities/review.entity';
+import { Like } from 'src/config/entities/like.entity';
+import { ReviewIdDto } from './dto/review.id.dto';
+import { Ingredient } from 'src/config/entities/ingredient.entity';
+import { AdminPointRepository } from 'src/backoffice-modules/admin-point/admin-point.repository';
+import { AdminPointHistoryService } from 'src/backoffice-modules/admin-point-history/admin-point-history.service';
+import { AdminPointHistoryRepository } from 'src/backoffice-modules/admin-point-history/admin-point-history.repository';
+import { ReviewUpdateDto } from './dto/review.update.dto';
+import { ReviewStatus } from 'src/common/enum/review.enum';
+import { ReviewsRequestDto } from './dto/reviews.request.dto';
 
 // 트랜잭션 초기화 : 실제 DB 트랜잭션을 걸지 않고 @Transaction이 동작하도록 준비함. 초기화함수.
 initializeTransactionalContext();
@@ -17,6 +31,7 @@ jest.mock('typeorm-transactional', () => ({
 describe('ReviewService', () => {
   let service: ReviewService;
   let repository: jest.Mocked<ReviewRepository>;
+  let adminPointService: jest.Mocked<AdminPointService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -31,12 +46,47 @@ describe('ReviewService', () => {
             findRandomCategoryList: jest.fn(),
             findRandomReviewImgList: jest.fn(),
             findReviewCategoryList: jest.fn(),
+            findReviewOne: jest.fn(),
+            findMemberId: jest.fn(),
+            findReviewId: jest.fn(),
+            findLikeId: jest.fn(),
+            deleteReviewLike: jest.fn(),
+            decrementTotalLikeNum: jest.fn(),
+            insertReviewLike: jest.fn(),
+            incrementTotalLikeNum: jest.fn(),
+            updateReviewStatus: jest.fn(),
+            findIngredientList: jest.fn(),
+            insertReviewIngredient: jest.fn(),
+            updateGenerableReview: jest.fn(),
+            findLikedReviewList: jest.fn(),
           },
         },
         {
           provide: AdminPointService,
           useValue: {
-            processUpsertPointByReview: jest.fn(), // ReviewService 안에서 실제 호출하는 메소드 이름에 맞게
+            processUpsertPointByReview: jest.fn(), // ReviewService 안에서 실제 호출하는 메소드
+          },
+        },
+        {
+          provide: AdminPointRepository,
+          useValue: {
+            insert: jest.fn(),
+            update: jest.fn(),
+          },
+        },
+
+        {
+          provide: AdminPointHistoryService,
+          useValue: {
+            upsert: jest.fn(),
+          },
+        },
+        {
+          provide: AdminPointHistoryRepository,
+          useValue: {
+            findMember: jest.fn(),
+            saveHistory: jest.fn(),
+            createAndSaveHistory: jest.fn(),
           },
         },
       ],
@@ -45,6 +95,7 @@ describe('ReviewService', () => {
     //test용 module에서 실제 service인스턴스를 가져옴
     service = module.get<ReviewService>(ReviewService);
     repository = module.get(ReviewRepository);
+    adminPointService = module.get(AdminPointService);
   });
 
   describe('getHomeReviewImgList', () => {
@@ -200,23 +251,644 @@ describe('ReviewService', () => {
    * 2. 재료와 이미지파일은 중복되지 않게한다.
    * 3. 존재하지 않는 reviewId를 조회할 때 400오류 발생 및 메세지전달
    */
-  describe('findReviewOne', async () => {
-    it('reviewId를 받으면, 하나의 review를 조회한다.', () => {
+  describe('findReviewOne', () => {
+    it('reviewId를 받으면, 하나의 review를 조회한다.', async () => {
+      const dto: ReviewMemberIdDto = { reviewId: 15, memberId: 7 };
+
       //Arrange - 레포지토리 응답 값 생성
+      repository.findReviewOne.mockResolvedValue([
+        {
+          reviewId: 15,
+          totalLikedNum: 42,
+          menuName: '딸기 크림 케이크',
+          content: '생크림이 부드럽고 딸기 향이 진해요.',
+          storeName: '스위트베리카페',
+          score: 4.5,
+          createdDate: new Date('2025-10-20T00:00:00Z'),
+          dessertCategoryId: 3,
+
+          memberNickName: '달콤이',
+          memberId: 7,
+          memberIsHavingImg: true,
+
+          PROFILEIMGMIDDLEPATH: '/profiles/2025/10/',
+          PROFILEIMGPATH: '7_profile',
+          PROFILEIMGEXTENTION: '.jpg',
+
+          reviewImgIsMain: true,
+          reviewImgNum: 1,
+          reviewImgMiddlepath: '/reviews/2025/10/',
+          reviewImgPath: '15_1',
+          reviewImgExtention: '.png',
+
+          ingredientName: '딸기',
+          isLiked: 1,
+        },
+        {
+          reviewId: 15,
+          totalLikedNum: 42,
+          menuName: '딸기 크림 케이크',
+          content: '생크림이 부드럽고 딸기 향이 진해요.',
+          storeName: '스위트베리카페',
+          score: 4.5,
+          createdDate: new Date('2025-10-20T00:00:00Z'),
+          dessertCategoryId: 3,
+
+          memberNickName: '달콤이',
+          memberId: 7,
+          memberIsHavingImg: true,
+
+          PROFILEIMGMIDDLEPATH: '/profiles/2025/10/',
+          PROFILEIMGPATH: '7_profile',
+          PROFILEIMGEXTENTION: '.jpg',
+
+          reviewImgIsMain: false,
+          reviewImgNum: 2,
+          reviewImgMiddlepath: '/reviews/2025/10/',
+          reviewImgPath: '15_2',
+          reviewImgExtention: '.png',
+
+          ingredientName: '생크림',
+          isLiked: 1,
+        },
+      ]);
+
       //Act - service.findReviewOne()
+      const result = await service.findReviewOne(dto);
+
       //Assert - expect()...
+      expect(result).toEqual({
+        reviewId: 15,
+        totalLikedNum: 42,
+        menuName: '딸기 크림 케이크',
+        content: '생크림이 부드럽고 딸기 향이 진해요.',
+        storeName: '스위트베리카페',
+        score: 4.5,
+        createdDate: new Date('2025-10-20T00:00:00Z'),
+        dessertCategoryId: 3,
+
+        memberNickName: '달콤이',
+        memberId: 7,
+        memberIsHavingImg: true,
+
+        profileImgMiddlePath: '/profiles/2025/10/',
+        profileImgPath: '7_profile',
+        profileImgExtension: '.jpg',
+        isLiked: 1,
+
+        reviewImg: [
+          {
+            reviewImgIsMain: true,
+            reviewImgNum: 1,
+            reviewImgMiddlepath: '/reviews/2025/10/',
+            reviewImgPath: '15_1',
+            reviewImgExtention: '.png',
+          },
+          {
+            reviewImgIsMain: false,
+            reviewImgNum: 2,
+            reviewImgMiddlepath: '/reviews/2025/10/',
+            reviewImgPath: '15_2',
+            reviewImgExtention: '.png',
+          },
+        ],
+        ingredients: ['딸기', '생크림'],
+      });
     }); //it 종료
 
     it('존재하지 않는 reviewId를 조회할 때 오류 발생', async () => {
+      const dto: ReviewMemberIdDto = { reviewId: 4512142412124, memberId: 2 };
       //Arrange
-      //Act
-      //Assert
+      repository.findReviewOne.mockResolvedValue([]);
+      //Act + Assert
+      //await를 먼저 사용하면 service.findReviewOne(dto)에서 이미 예외가 던져지고, 테스트 코드 자체에서 즉시 throw됨 ! 한번에 써야함
+      await expect(service.findReviewOne(dto)).rejects.toThrow(BadRequestException);
     }); //it 종료
 
     it('재료와 이미지파일은 중복되지 않게한다.', async () => {
+      const dto: ReviewMemberIdDto = { reviewId: 15, memberId: 7 };
+
+      //Arrange - 레포지토리 응답 값 생성
+      repository.findReviewOne.mockResolvedValue([
+        {
+          reviewId: 15,
+          totalLikedNum: 42,
+          menuName: '딸기 크림 케이크',
+          content: '생크림이 부드럽고 딸기 향이 진해요.',
+          storeName: '스위트베리카페',
+          score: 4.5,
+          createdDate: new Date('2025-10-20T00:00:00Z'),
+          dessertCategoryId: 3,
+
+          memberNickName: '달콤이',
+          memberId: 7,
+          memberIsHavingImg: true,
+
+          PROFILEIMGMIDDLEPATH: '/profiles/2025/10/',
+          PROFILEIMGPATH: '7_profile',
+          PROFILEIMGEXTENTION: '.jpg',
+
+          reviewImgIsMain: false,
+          reviewImgNum: 2,
+          reviewImgMiddlepath: '/reviews/2025/10/',
+          reviewImgPath: '15_2',
+          reviewImgExtention: '.png',
+
+          ingredientName: '딸기',
+          isLiked: 1,
+        },
+        {
+          reviewId: 15,
+          totalLikedNum: 42,
+          menuName: '딸기 크림 케이크',
+          content: '생크림이 부드럽고 딸기 향이 진해요.',
+          storeName: '스위트베리카페',
+          score: 4.5,
+          createdDate: new Date('2025-10-20T00:00:00Z'),
+          dessertCategoryId: 3,
+
+          memberNickName: '달콤이',
+          memberId: 7,
+          memberIsHavingImg: true,
+
+          PROFILEIMGMIDDLEPATH: '/profiles/2025/10/',
+          PROFILEIMGPATH: '7_profile',
+          PROFILEIMGEXTENTION: '.jpg',
+
+          reviewImgIsMain: false,
+          reviewImgNum: 2,
+          reviewImgMiddlepath: '/reviews/2025/10/',
+          reviewImgPath: '15_2',
+          reviewImgExtention: '.png',
+
+          ingredientName: '딸기',
+          isLiked: 1,
+        },
+      ]);
+
+      //Act - service.findReviewOne()
+      const result = await service.findReviewOne(dto);
+
+      //Assert - expect()...
+      expect(repository.findReviewOne).toHaveBeenCalledWith(dto);
+      expect(result).toEqual({
+        reviewId: 15,
+        totalLikedNum: 42,
+        menuName: '딸기 크림 케이크',
+        content: '생크림이 부드럽고 딸기 향이 진해요.',
+        storeName: '스위트베리카페',
+        score: 4.5,
+        createdDate: new Date('2025-10-20T00:00:00Z'),
+        dessertCategoryId: 3,
+
+        memberNickName: '달콤이',
+        memberId: 7,
+        memberIsHavingImg: true,
+
+        profileImgMiddlePath: '/profiles/2025/10/',
+        profileImgPath: '7_profile',
+        profileImgExtension: '.jpg',
+        isLiked: 1,
+
+        reviewImg: [
+          {
+            reviewImgIsMain: false,
+            reviewImgNum: 2,
+            reviewImgMiddlepath: '/reviews/2025/10/',
+            reviewImgPath: '15_2',
+            reviewImgExtention: '.png',
+          },
+        ],
+        ingredients: ['딸기'],
+      });
+    }); //it종료
+  }); //describe
+
+  /**
+   * 정책
+   * 1. 리뷰가 이미 좋아요되어있으면 -> 좋아요취소
+   * 2. 리뷰가 좋아요 눌러있지 않으면 -> 좋아요
+   * 3. 리뷰,사용자 정보 없을 경우 BadRequestException
+   */
+  describe('postLikeItem', () => {
+    it('리뷰에 대한 좋아요 취소', async () => {
+      //Arrange
+      const dto: LikeDto = { memberId: 2, reviewId: 1, isLike: false };
+      const member = { memberId: 2 } as Member;
+      const review = { reviewId: 1 } as Review;
+      const like = { likeId: 1 } as Like;
+
+      repository.findMemberId.mockResolvedValue(member);
+      repository.findReviewId.mockResolvedValue(review);
+      repository.findLikeId.mockResolvedValue(like);
+      repository.deleteReviewLike.mockResolvedValue();
+      repository.decrementTotalLikeNum.mockResolvedValue();
+
+      //Act
+      const result = await service.postLikeItem(dto);
+
+      //Assert
+      expect(repository.deleteReviewLike).toHaveBeenCalledWith(like.likeId);
+      expect(repository.decrementTotalLikeNum).toHaveBeenCalledWith(dto);
+      expect(repository.insertReviewLike).not.toHaveBeenCalled();
+      expect(repository.incrementTotalLikeNum).not.toHaveBeenCalled();
+    }); //it
+
+    it('리뷰에 대한 좋아요 남기기', async () => {
+      //Arrange
+      const dto: LikeDto = { memberId: 2, reviewId: 1, isLike: true };
+      const member = { memberId: 2 } as Member;
+      const review = { reviewId: 1 } as Review;
+      const like = { likeId: 1 } as Like;
+
+      repository.findMemberId.mockResolvedValue(member);
+      repository.findReviewId.mockResolvedValue(review);
+      repository.insertReviewLike.mockResolvedValue();
+      repository.incrementTotalLikeNum.mockResolvedValue();
+
+      //Act
+      const result = await service.postLikeItem(dto);
+
+      //Assert
+      expect(repository.insertReviewLike).toHaveBeenCalledWith(dto);
+      expect(repository.incrementTotalLikeNum).toHaveBeenCalledWith(dto);
+      expect(repository.deleteReviewLike).not.toHaveBeenCalled();
+      expect(repository.decrementTotalLikeNum).not.toHaveBeenCalled();
+    }); //it
+
+    it('리뷰정보 없을경우 오류발생', async () => {
+      //Arrange
+      const dto: LikeDto = { memberId: 2, reviewId: 1, isLike: true };
+      const member = { memberId: 1 } as Member;
+      repository.findMemberId.mockResolvedValue(null);
+      repository.findMemberId.mockResolvedValue(member);
+      //Act, Assert
+      await expect(service.postLikeItem(dto)).rejects.toThrow(BadRequestException);
+    }); //it
+
+    it('사용자정보 없을경우 오류발생', async () => {
+      //Arrange
+      const dto: LikeDto = { memberId: 2, reviewId: 1, isLike: true };
+      const review = { reviewId: 1 } as Review;
+      repository.findReviewId.mockResolvedValue(review);
+      repository.findMemberId.mockResolvedValue(null);
+
+      //Act, Assert
+      await expect(service.postLikeItem(dto)).rejects.toThrow(BadRequestException);
+    }); //it
+  }); //describe
+
+  /**
+   * 등록된 리뷰 하나 삭제하기
+   * 1. 리뷰는 삭제가 아닌 숨김처리
+   * 2. 기존 리뷰의 포인트 삭감처리 - todo
+   */
+  describe('deleteReview', () => {
+    it('리뷰 삭제-숨김처리', async () => {
+      //Arrange
+      const dto = { reviewId: 1 } as ReviewIdDto;
+      //Act
+      const result = await service.deleteReview(dto);
+      //Assert
+      expect(repository.updateReviewStatus).toHaveBeenCalledWith(dto);
+    });
+  });
+
+  /**
+   * 재료목록 조회하기
+   * 1. 전체 목록 정상반환
+   * 2. 빈배열 정상 반환
+   * 3. 오류발생시 예외던짐
+   */
+  describe('getIngredientList', () => {
+    it('DB에 저장된 재료 전체 목록 조회', async () => {
+      const mockIn = [
+        { ingredientId: 1, ingredientName: '유제품' },
+        { ingredientId: 2, ingredientName: '견과류' },
+      ] as Ingredient[];
+
+      repository.findIngredientList.mockResolvedValue(mockIn);
+
+      const result = await service.getIngredientList();
+
+      expect(result).toEqual(mockIn);
+    }); //it
+
+    it('빈배열 정상조회', async () => {
+      const mockIn = [] as Ingredient[];
+      repository.findIngredientList.mockResolvedValue(mockIn);
+
+      const result = await service.getIngredientList();
+
+      expect(result).toEqual(mockIn);
+    }); //it
+
+    it('repository오류 반환', async () => {
+      repository.findIngredientList.mockRejectedValue(new Error('DB 에러'));
+
+      await expect(service.getIngredientList()).rejects.toThrow(InternalServerErrorException);
+    }); //it
+  }); //desc
+
+  /**
+   * 후기 저장
+   * 1. 리뷰 업데이트
+   * 2. 리뷰Id 없으면 재료 먼저 저장
+   * 3. 5포인트 적립
+   */
+  describe('patchGenerableReview', () => {
+    let dto: ReviewUpdateDto;
+    let review: Review;
+    let ingredients: number[];
+    let expectedSaveData: any[];
+
+    beforeEach(() => {
+      // 테스트 간 독립성을 위해 각 객체를 새로 생성
+      ingredients = [1, 2];
+      review = { reviewId: 1 } as Review;
+
+      dto = {
+        memberId: 1,
+        reviewId: 1,
+        storeName: '온혜화',
+        menuName: '치즈케이크',
+        dessertCategoryId: 1,
+        score: 1,
+        ingredientId: ingredients,
+        content: '달콤쌉싸름',
+        status: 'saved',
+      } as ReviewUpdateDto;
+
+      expectedSaveData = [
+        { ingredient: { ingredientId: 1 }, review: { reviewId: 1 } },
+        { ingredient: { ingredientId: 2 }, review: { reviewId: 1 } },
+      ];
+
+      // mock 초기화
+      jest.clearAllMocks();
+
+      repository.updateGenerableReview.mockResolvedValue(review);
+      repository.insertReviewIngredient.mockResolvedValue(undefined);
+      adminPointService.processUpsertPointByReview.mockResolvedValue(undefined);
+    });
+    it('리뷰 저장, 재료저장, 포인트 저장 호출되야함', async () => {
+      //Act
+      const result = await service.patchGenerableReview(dto);
+      //Assert
+      expect(repository.updateGenerableReview).toHaveBeenCalledWith(dto);
+      expect(repository.insertReviewIngredient).toHaveBeenCalledWith(expectedSaveData);
+      expect(adminPointService.processUpsertPointByReview).toHaveBeenCalled();
+      expect(result).toEqual({ reviewId: 1 });
+    });
+    it('재료가 비어있는경우 insertReviewIngredient 호출하지 않음', async () => {
+      const newDto = { ...dto, ingredientId: [] };
+      //Act
+      const result = await service.patchGenerableReview(newDto);
+
+      //Assert
+      expect(repository.updateGenerableReview).toHaveBeenCalledWith(newDto);
+      expect(repository.insertReviewIngredient).not.toHaveBeenCalled();
+      expect(adminPointService.processUpsertPointByReview).toHaveBeenCalled();
+      expect(result).toEqual({ reviewId: 1 });
+    });
+  });
+
+  describe('getLikedReviewList', () => {
+    beforeEach(() => {});
+    it('사용자가 좋아요한 리뷰목록만, 최신으로 작성한 순서로 조회됨', async () => {
+      //Arrange
+      const dto = { memberId: 1, sort: 'D' } as ReviewsRequestDto;
+
+      const mockingLikedReview = [
+        {
+          reviewId: 1,
+          totalLikedNum: 5,
+          menuName: 'Cake',
+          content: 'Good',
+          storeName: 'Cafe',
+          score: 4,
+          createdDate: new Date('2025-09-16T00:00:00Z'),
+          dessertCategoryId: 10,
+          memberNickName: 'UserA',
+          memberIsHavingImg: true,
+          isLiked: 1,
+          ingredientName: 'a',
+          reviewImgPath: 'c',
+          reviewImgIsMain: '',
+          reviewImgNum: '',
+          reviewImgMiddlepath: '',
+          reviewImgExtention: '',
+          PROFILEIMGPATH: 'a',
+          PROFILEIMGMIDDLEPATH: '',
+          PROFILEIMGEXTENTION: '',
+        },
+        {
+          reviewId: 2,
+          totalLikedNum: 10,
+          menuName: 'PIKE',
+          content: '날아라 용가리',
+          storeName: 'Cafe용용',
+          score: 3,
+          createdDate: new Date('2025-09-15T00:00:00Z'),
+          dessertCategoryId: 21,
+          memberNickName: 'UserB',
+          memberIsHavingImg: true,
+          isLiked: 1,
+          ingredientName: 'b',
+          reviewImgPath: 'a',
+          reviewImgIsMain: '',
+          reviewImgNum: '',
+          reviewImgMiddlepath: '',
+          reviewImgExtention: '',
+          PROFILEIMGPATH: 'a',
+          PROFILEIMGMIDDLEPATH: '',
+          PROFILEIMGEXTENTION: '',
+        },
+      ];
+      const expectedResult = {
+        hasNextPage: false,
+        nextCursor: null,
+        items: [
+          {
+            reviewId: 1,
+            totalLikedNum: 5,
+            menuName: 'Cake',
+            content: 'Good',
+            storeName: 'Cafe',
+            score: 4,
+            createdDate: new Date('2025-09-16T00:00:00Z'),
+            dessertCategoryId: 10,
+            memberNickName: 'UserA',
+            memberIsHavingImg: true,
+            isLiked: 1,
+            ingredient: [{ ingredientName: 'a' }],
+            reviewImg: [{ reviewImgPath: 'c', reviewImgIsMain: '', reviewImgNum: '', reviewImgMiddlepath: '', reviewImgExtention: '' }],
+            profileImg: [{ profileImgPath: 'a', profileImgMiddlePath: '', profileImgExtention: '' }],
+          },
+          {
+            reviewId: 2,
+            totalLikedNum: 10,
+            menuName: 'PIKE',
+            content: '날아라 용가리',
+            storeName: 'Cafe용용',
+            score: 3,
+            createdDate: new Date('2025-09-15T00:00:00Z'),
+            dessertCategoryId: 21,
+            memberNickName: 'UserB',
+            memberIsHavingImg: true,
+            isLiked: 1,
+            ingredient: [{ ingredientName: 'b' }],
+            reviewImg: [{ reviewImgPath: 'a', reviewImgIsMain: '', reviewImgNum: '', reviewImgMiddlepath: '', reviewImgExtention: '' }],
+            profileImg: [{ profileImgPath: 'a', profileImgMiddlePath: '', profileImgExtention: '' }],
+          },
+        ],
+      };
+
+      repository.findLikedReviewList.mockResolvedValue(mockingLikedReview);
+      //Act
+      const result = await service.getLikedReviewList(dto);
+      //Assert
+      expect(repository.findLikedReviewList).toHaveBeenCalledWith(dto);
+      expect(result).toEqual(expectedResult);
+    });
+
+    it('사용자가 좋아요한 리뷰목록만, 좋아요 많은 순서로 조회됨', async () => {
+      //Arrange
+      const dto = { memberId: 1, sort: 'L' } as ReviewsRequestDto;
+
+      const mockingLikedReview = [
+        {
+          reviewId: 2,
+          totalLikedNum: 10,
+          menuName: 'PIKE',
+          content: '날아라 용가리',
+          storeName: 'Cafe용용',
+          score: 3,
+          createdDate: new Date('2025-09-15T00:00:00Z'),
+          dessertCategoryId: 21,
+          memberNickName: 'UserB',
+          memberIsHavingImg: true,
+          isLiked: 1,
+          ingredientName: 'b',
+          reviewImgPath: 'a',
+          reviewImgIsMain: '',
+          reviewImgNum: '',
+          reviewImgMiddlepath: '',
+          reviewImgExtention: '',
+          PROFILEIMGPATH: 'a',
+          PROFILEIMGMIDDLEPATH: '',
+          PROFILEIMGEXTENTION: '',
+        },
+        {
+          reviewId: 1,
+          totalLikedNum: 5,
+          menuName: 'Cake',
+          content: 'Good',
+          storeName: 'Cafe',
+          score: 4,
+          createdDate: new Date('2025-09-16T00:00:00Z'),
+          dessertCategoryId: 10,
+          memberNickName: 'UserA',
+          memberIsHavingImg: true,
+          isLiked: 1,
+          ingredientName: 'a',
+          reviewImgPath: 'c',
+          reviewImgIsMain: '',
+          reviewImgNum: '',
+          reviewImgMiddlepath: '',
+          reviewImgExtention: '',
+          PROFILEIMGPATH: 'a',
+          PROFILEIMGMIDDLEPATH: '',
+          PROFILEIMGEXTENTION: '',
+        },
+      ];
+      const expectedResult = {
+        hasNextPage: false,
+        nextCursor: null,
+        items: [
+          {
+            reviewId: 2,
+            totalLikedNum: 10,
+            menuName: 'PIKE',
+            content: '날아라 용가리',
+            storeName: 'Cafe용용',
+            score: 3,
+            createdDate: new Date('2025-09-15T00:00:00Z'),
+            dessertCategoryId: 21,
+            memberNickName: 'UserB',
+            memberIsHavingImg: true,
+            isLiked: 1,
+            ingredient: [{ ingredientName: 'b' }],
+            reviewImg: [{ reviewImgPath: 'a', reviewImgIsMain: '', reviewImgNum: '', reviewImgMiddlepath: '', reviewImgExtention: '' }],
+            profileImg: [{ profileImgPath: 'a', profileImgMiddlePath: '', profileImgExtention: '' }],
+          },
+          {
+            reviewId: 1,
+            totalLikedNum: 5,
+            menuName: 'Cake',
+            content: 'Good',
+            storeName: 'Cafe',
+            score: 4,
+            createdDate: new Date('2025-09-16T00:00:00Z'),
+            dessertCategoryId: 10,
+            memberNickName: 'UserA',
+            memberIsHavingImg: true,
+            isLiked: 1,
+            ingredient: [{ ingredientName: 'a' }],
+            reviewImg: [{ reviewImgPath: 'c', reviewImgIsMain: '', reviewImgNum: '', reviewImgMiddlepath: '', reviewImgExtention: '' }],
+            profileImg: [{ profileImgPath: 'a', profileImgMiddlePath: '', profileImgExtention: '' }],
+          },
+        ],
+      };
+      repository.findLikedReviewList.mockResolvedValue(mockingLikedReview);
+      //Act
+      const result = await service.getLikedReviewList(dto);
+      //Assert
+      expect(repository.findLikedReviewList).toHaveBeenCalledWith(dto);
+      expect(result).toEqual(expectedResult);
+    });
+    it('사용자가 좋아요한 Review가 없으면 빈 배열 반환', async () => {
+      //Arrange
+      const dto = { memberId: 1, sort: 'L' } as ReviewsRequestDto;
+      repository.findLikedReviewList.mockResolvedValue([]);
+      //Act
+      const result = await service.getLikedReviewList(dto);
+      //Assert
+      expect(repository.findLikedReviewList).toHaveBeenCalledWith(dto);
+      expect(result).toEqual({ hasNextPage: false, items: [], nextCursor: null });
+    });
+    it('동일한 리뷰ID를 가진 응답데이터는 중복되지 않음', async () => {
       //Arrange
       //Act
+      // const result = await service.getLikedReviewList(dto);
       //Assert
-    }); //it종료
-  });
+    }); //it
+  }); //describe
+
+  /**
+   * 리뷰이미지 하나 저장 정책
+   * 1. 리뷰아이디 필수
+   * 2. 해당 리뷰아이디의 이미지 갯수 확인 -> 4개 넘으면 오류반환
+   * 3. 이미지 하나 저장
+   */
+  describe('postReviewImg', () => {
+    it('', async () => {}); //it
+  }); //describe
+
+  /**
+   * 리뷰이미지 하나 삭제 정책
+   * 1. 이미지 삭제시 파일도 같이 삭제
+   */
+  describe('deleteReviewImg', () => {
+    it('', async () => {}); //it
+  }); //describe
+
+  /**
+   * 리뷰이미지 순서 변경 정책
+   * 1. 메인과 순서 수정
+   * 2. 변경할 리뷰이미지 정보와 기존 리뷰이미지 정보 매핑 -> 수정
+   */
+  describe('updateReviewImg', () => {
+    it('', async () => {}); //it
+  }); //describe
 });
