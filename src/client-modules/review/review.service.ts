@@ -238,7 +238,7 @@ export class ReviewService {
   @Transactional()
   async postLikeItem(likeDto: LikeDto) {
     const isMemberData = await this.reviewRepository.findMemberId(likeDto);
-    const isReviewData = await this.reviewRepository.findReviewId(likeDto);
+    const isReviewData = await this.reviewRepository.findReviewId(likeDto.reviewId);
 
     if (!isMemberData || !isReviewData) {
       throw new BadRequestException('존재하지 않는 정보', {
@@ -330,27 +330,31 @@ export class ReviewService {
    */
   @Transactional()
   async postReviewImg(reviewImgSaveDto: ReviewImgSaveDto, file) {
-    try {
-      const reviewImgCount = await this.reviewRepository.counteReviewImg(reviewImgSaveDto);
-      if (reviewImgCount >= 4) {
-        throw new BadRequestException('이미지갯수 초과', {
-          cause: new Error(),
-          description: '등록가능한 최대 이미지는 4개입니다.',
-        });
-      }
-      const extention = path.extname(file.originalname); // 파일 확장자 추출
-      const imgName = path.basename(file.originalname, extention); // 파일 이름
-      const lastpath = file.filename;
-      const fileData = {
-        imgName,
-        extention,
-        path: lastpath,
-      };
-      const savedData = await this.reviewRepository.insertReviewImg(reviewImgSaveDto, fileData);
-      return { reviewImgId: savedData['raw']['reviewImgId'] };
-    } catch (error) {
-      throw error;
+    const isReviewData = await this.reviewRepository.findReviewId(reviewImgSaveDto.reviewId);
+
+    if (!isReviewData) {
+      throw new BadRequestException('존재하지 않는 정보', {
+        cause: new Error(),
+        description: '리뷰가 존재하지 않습니다',
+      });
     }
+    const reviewImgCount = await this.reviewRepository.countReviewImg(reviewImgSaveDto);
+    if (reviewImgCount >= 4) {
+      throw new BadRequestException('이미지갯수 초과', {
+        cause: new Error(),
+        description: '등록가능한 최대 이미지는 4개입니다.',
+      });
+    }
+    const extention = path.extname(file.originalname); // 파일 확장자 추출
+    const imgName = path.basename(file.originalname, extention); // 파일 이름
+    const lastpath = file.filename;
+    const fileData = {
+      imgName,
+      extention,
+      path: lastpath,
+    };
+    const savedData = await this.reviewRepository.insertReviewImg(reviewImgSaveDto, fileData);
+    return { reviewImgId: savedData['raw']['reviewImgId'] };
   }
 
   /**
