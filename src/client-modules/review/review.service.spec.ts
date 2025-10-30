@@ -19,6 +19,9 @@ import { AdminPointHistoryRepository } from 'src/backoffice-modules/admin-point-
 import { ReviewUpdateDto } from './dto/review.update.dto';
 import { ReviewStatus } from 'src/common/enum/review.enum';
 import { ReviewsRequestDto } from './dto/reviews.request.dto';
+import { ReviewImgSaveDto } from './dto/reviewimg.save.dto';
+import { ReviewImg } from 'src/config/entities/review.img.entity';
+import { InsertResult } from 'typeorm';
 
 // 트랜잭션 초기화 : 실제 DB 트랜잭션을 걸지 않고 @Transaction이 동작하도록 준비함. 초기화함수.
 initializeTransactionalContext();
@@ -59,6 +62,11 @@ describe('ReviewService', () => {
             insertReviewIngredient: jest.fn(),
             updateGenerableReview: jest.fn(),
             findLikedReviewList: jest.fn(),
+            countReviewImg: jest.fn(),
+            insertReviewImg: jest.fn(),
+            deleteReviewImg: jest.fn(),
+            findReviewImgId: jest.fn(),
+            saveReviewImg: jest.fn(),
           },
         },
         {
@@ -951,12 +959,56 @@ describe('ReviewService', () => {
 
   /**
    * 리뷰이미지 하나 저장 정책
-   * 1. 리뷰아이디 필수
+   * 1. 이미지 저장시, 리뷰아이디 필수 -> 없으면 오류반환
    * 2. 해당 리뷰아이디의 이미지 갯수 확인 -> 4개 넘으면 오류반환
    * 3. 이미지 하나 저장
    */
   describe('postReviewImg', () => {
-    it('', async () => {}); //it
+    const dto = { reviewId: 1, isMain: true, num: 1 } as ReviewImgSaveDto;
+    const file = {
+      originalname: 'imgName.jpg',
+      filename: 'imgName.jpg',
+    } as Express.Multer.File;
+
+    it('이미지 저장시, 리뷰아이디 필수 -> 없으면 오류반환', async () => {
+      //Arrange
+      repository.findReviewId.mockResolvedValue(undefined);
+      //Act and Assert
+      await expect(service.postReviewImg(dto, file)).rejects.toThrow(BadRequestException);
+      expect(repository.findReviewId).toHaveBeenCalledWith(dto.reviewId);
+      expect(repository.countReviewImg).not.toHaveBeenCalled();
+      expect(repository.insertReviewImg).not.toHaveBeenCalled();
+    }); //it
+
+    it('리뷰에 할당된 이미지 갯수 4개 초과시 오류 반환. 최대 4개 가능', async () => {
+      //Arrange
+      repository.findReviewId.mockResolvedValue({ reviewId: 1 } as Review);
+      repository.countReviewImg.mockResolvedValue(4);
+      //Act and Assert
+      await expect(service.postReviewImg(dto, file)).rejects.toThrow(BadRequestException);
+      expect(repository.findReviewId).toHaveBeenCalledWith(dto.reviewId);
+      expect(repository.countReviewImg).toHaveBeenCalled();
+      expect(repository.insertReviewImg).not.toHaveBeenCalled();
+    }); //it
+
+    it('리뷰 이미지 하나 저장', async () => {
+      repository.findReviewId.mockResolvedValue({ reviewId: 1 } as Review);
+      repository.countReviewImg.mockResolvedValue(3);
+      repository.insertReviewImg.mockResolvedValue({
+        identifiers: [{ reviewImgId: 2 }],
+        generatedMaps: [{ reviewImgId: 2, path: 'imgName', extention: '.jpg' }],
+        raw: { reviewImgId: 2 },
+      } as InsertResult);
+
+      //Act
+      const result = await service.postReviewImg(dto, file);
+
+      //Assert
+      expect(result).toEqual({ reviewImgId: 2 });
+      expect(repository.findReviewId).toHaveBeenCalledWith(dto.reviewId);
+      expect(repository.countReviewImg).toHaveBeenCalledWith(dto);
+      expect(repository.insertReviewImg).toHaveBeenCalled();
+    }); //it
   }); //describe
 
   /**
