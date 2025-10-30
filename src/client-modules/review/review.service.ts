@@ -356,6 +356,7 @@ export class ReviewService {
   /**
    * 리뷰이미지 하나 삭제
    * @param reviewImgIdDto
+   * todo 삭제할때 파일도 삭제해야함
    */
   @Transactional()
   async deleteReviewImg(reviewImgIdDto: ReviewImgIdDto) {
