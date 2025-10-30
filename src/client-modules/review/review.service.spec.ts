@@ -653,6 +653,13 @@ describe('ReviewService', () => {
     });
   });
 
+  /**
+   * 사용자가 좋아요한 리뷰목록 조회
+   * 1. 최신 작성한 순서로 조회하기
+   * 2. 좋아요 많은 순서로 조회하기
+   * 3. 좋아요한 리뷰 목록 없으면 빈배열 반환
+   * 4. 응답데이터 목록에는 리뷰ID가 중복되지 않음(재료,이미지 중복 X)
+   */
   describe('getLikedReviewList', () => {
     beforeEach(() => {});
     it('사용자가 좋아요한 리뷰목록만, 최신으로 작성한 순서로 조회됨', async () => {
@@ -847,6 +854,7 @@ describe('ReviewService', () => {
       expect(repository.findLikedReviewList).toHaveBeenCalledWith(dto);
       expect(result).toEqual(expectedResult);
     });
+
     it('사용자가 좋아요한 Review가 없으면 빈 배열 반환', async () => {
       //Arrange
       const dto = { memberId: 1, sort: 'L' } as ReviewsRequestDto;
@@ -857,11 +865,87 @@ describe('ReviewService', () => {
       expect(repository.findLikedReviewList).toHaveBeenCalledWith(dto);
       expect(result).toEqual({ hasNextPage: false, items: [], nextCursor: null });
     });
-    it('동일한 리뷰ID를 가진 응답데이터는 중복되지 않음', async () => {
+
+    it('응답데이터 목록에는 리뷰ID가 중복되지 않음(재료,이미지 중복 X)', async () => {
       //Arrange
+      const dto = { memberId: 1, sort: 'L' } as ReviewsRequestDto;
+      repository.findLikedReviewList.mockResolvedValue([
+        {
+          reviewId: 1,
+          totalLikedNum: 5,
+          menuName: 'Cake',
+          content: 'Good',
+          storeName: 'Cafe',
+          score: 4,
+          createdDate: new Date('2025-09-15T00:00:00Z'),
+          dessertCategoryId: 10,
+          memberNickName: 'UserA',
+          memberIsHavingImg: true,
+          isLiked: 1,
+          ingredientName: 'a',
+          reviewImgPath: 'c',
+          reviewImgIsMain: '',
+          reviewImgNum: '',
+          reviewImgMiddlepath: '',
+          reviewImgExtention: '',
+          PROFILEIMGPATH: 'a',
+          PROFILEIMGMIDDLEPATH: '',
+          PROFILEIMGEXTENTION: '',
+        },
+        {
+          reviewId: 1,
+          totalLikedNum: 5,
+          menuName: 'Cake',
+          content: 'Good',
+          storeName: 'Cafe',
+          score: 4,
+          createdDate: new Date('2025-09-15T00:00:00Z'),
+          dessertCategoryId: 10,
+          memberNickName: 'UserA',
+          memberIsHavingImg: true,
+          isLiked: 1,
+          ingredientName: 'b',
+          reviewImgPath: 'a',
+          reviewImgIsMain: '',
+          reviewImgNum: '',
+          reviewImgMiddlepath: '',
+          reviewImgExtention: '',
+          PROFILEIMGPATH: 'a',
+          PROFILEIMGMIDDLEPATH: '',
+          PROFILEIMGEXTENTION: '',
+        },
+      ]);
+
       //Act
-      // const result = await service.getLikedReviewList(dto);
+      const result = await service.getLikedReviewList(dto);
+
       //Assert
+      expect(repository.findLikedReviewList).toHaveBeenCalledWith(dto);
+      expect(result).toEqual({
+        hasNextPage: false,
+        nextCursor: null,
+        items: [
+          {
+            reviewId: 1,
+            totalLikedNum: 5,
+            menuName: 'Cake',
+            content: 'Good',
+            storeName: 'Cafe',
+            score: 4,
+            createdDate: expect.any(Date),
+            dessertCategoryId: 10,
+            memberNickName: 'UserA',
+            memberIsHavingImg: true,
+            isLiked: 1,
+            ingredient: [{ ingredientName: 'a' }, { ingredientName: 'b' }],
+            reviewImg: [
+              { reviewImgPath: 'c', reviewImgIsMain: '', reviewImgNum: '', reviewImgMiddlepath: '', reviewImgExtention: '' },
+              { reviewImgPath: 'a', reviewImgIsMain: '', reviewImgNum: '', reviewImgMiddlepath: '', reviewImgExtention: '' },
+            ],
+            profileImg: [{ profileImgPath: 'a', profileImgMiddlePath: '', profileImgExtention: '' }],
+          },
+        ],
+      });
     }); //it
   }); //describe
 
