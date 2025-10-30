@@ -336,10 +336,10 @@ export class ReviewRepository {
    * @param likeDto
    * @returns
    */
-  async findReviewId(likeDto: LikeDto) {
+  async findReviewId(reviewId) {
     return await this.review.findOne({
       select: { reviewId: true },
-      where: { reviewId: likeDto.reviewId },
+      where: { reviewId },
     });
   }
 
@@ -518,7 +518,7 @@ export class ReviewRepository {
    * @param reviewImgSaveDto
    * @returns
    */
-  async counteReviewImg(reviewImgSaveDto: ReviewImgSaveDto) {
+  async countReviewImg(reviewImgSaveDto: ReviewImgSaveDto) {
     return await this.reviewImg.count({
       where: { reviewImg: { reviewId: reviewImgSaveDto.reviewId } },
     });
