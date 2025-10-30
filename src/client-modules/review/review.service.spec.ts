@@ -22,6 +22,7 @@ import { ReviewsRequestDto } from './dto/reviews.request.dto';
 import { ReviewImgSaveDto } from './dto/reviewimg.save.dto';
 import { ReviewImg } from 'src/config/entities/review.img.entity';
 import { InsertResult } from 'typeorm';
+import { ReviewImgIdDto } from './dto/reviewimg.id.dto';
 
 // 트랜잭션 초기화 : 실제 DB 트랜잭션을 걸지 않고 @Transaction이 동작하도록 준비함. 초기화함수.
 initializeTransactionalContext();
@@ -1016,7 +1017,15 @@ describe('ReviewService', () => {
    * 1. 이미지 삭제시 파일도 같이 삭제
    */
   describe('deleteReviewImg', () => {
-    it('', async () => {}); //it
+    const dto = { reviewImgId: 2 } as ReviewImgIdDto;
+    it('이미지 하나 삭제 성공', async () => {
+      //Arrange
+      repository.deleteReviewImg.mockResolvedValue();
+      //Act
+      const result = await repository.deleteReviewImg(dto);
+      //Assert
+      expect(repository.deleteReviewImg).toHaveBeenCalledWith(dto);
+    }); //it
   }); //describe
 
   /**
