@@ -7,6 +7,7 @@ import { winstonLogger } from './config/logger/winston.util';
 import { HttpExceptionFilter } from './config/filters/http.exception.filter';
 import { ValidationPipe } from '@nestjs/common';
 import { initializeTransactionalContext } from 'typeorm-transactional';
+import { json, urlencoded } from 'express';
 
 async function bootstrap() {
   initializeTransactionalContext();
@@ -30,6 +31,10 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  app.use(json({ limit: '10mb' }));
+  app.use(urlencoded({ extended: true, limit: '10mb' }));
+
   await app.listen(3000);
 }
 bootstrap();

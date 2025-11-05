@@ -1,11 +1,62 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { ObjectStorageClient } from 'oci-objectstorage';
+import { ConfigFileAuthenticationDetailsProvider } from 'oci-common';
+import * as oci from 'oci-sdk';
+
 import * as path from 'path';
 import * as fs from 'fs';
 
 @Injectable()
 export class FileTransService {
-  constructor() {}
+  private readonly objectStorage: ObjectStorageClient;
+  private readonly namespaceName: string;
+  private readonly bucketName = 'my-bucket'; // 생성한 버킷 이름으로 변경
 
+  constructor() {
+    const provider = new ConfigFileAuthenticationDetailsProvider(); // ~/.oci/config 사용
+    this.objectStorage = new ObjectStorageClient({ authenticationDetailsProvider: provider });
+    this.namespaceName = process.env.OCI_NAMESPACE || ''; // 아래에 나올 Namespace 등록 필요
+  }
+
+  // 🟢 파일 업로드
+  async upload(file: Express.Multer.File): Promise<string> {
+    if (!file) throw new BadRequestException('파일이 존재하지 않습니다.');
+
+    const request = {
+      namespaceName: this.namespaceName,
+      bucketName: this.bucketName,
+      objectName: file.originalname,
+      putObjectBody: file.buffer,
+      contentLength: file.size,
+    };
+
+    await this.objectStorage.putObject(request);
+
+    // Object URL 형식 반환 (공개 버킷일 경우 바로 접근 가능)
+    return `https://objectstorage.ap-seoul-1.oraclecloud.com/n/${this.namespaceName}/b/${this.bucketName}/o/${encodeURIComponent(file.originalname)}`;
+  }
+
+  // 🟣 파일 다운로드
+  async download(filename: string): Promise<Buffer> {
+    const response = await this.objectStorage.getObject({
+      namespaceName: this.namespaceName,
+      bucketName: this.bucketName,
+      objectName: filename,
+    });
+
+    return Buffer.from(await response.value.arrayBuffer());
+  }
+
+  // 🔵 파일 삭제
+  async delete(filename: string): Promise<void> {
+    await this.objectStorage.deleteObject({
+      namespaceName: this.namespaceName,
+      bucketName: this.bucketName,
+      objectName: filename,
+    });
+  }
+
+  //-기존 데이터-//
   async uploadFiles(files: Array<Express.Multer.File>) {
     if (!files) {
       throw Error('파일이 존재하지 않습니다.');

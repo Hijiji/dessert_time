@@ -1,4 +1,6 @@
-import { Controller, Post, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Param, Res, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { Response } from 'express';
+
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -9,6 +11,27 @@ import { multerOptionsFactory } from './multer.option.factory';
 @ApiTags('File')
 export class FileTransController {
   constructor(private fileService: FileTransService) {}
+
+  @UseInterceptors(FileInterceptor('file'))
+  async cloudUploadFile(@UploadedFile() file: Express.Multer.File) {
+    const url = await this.fileService.upload(file);
+    return { url };
+  }
+
+  @Get(':filename')
+  async cloudDownloadFile(@Param('filename') filename: string, @Res() res: Response) {
+    const file = await this.fileService.download(filename);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.send(file);
+  }
+
+  @Delete(':filename')
+  async delete(@Param('filename') filename: string) {
+    await this.fileService.delete(filename);
+    return { message: '삭제 완료' };
+  }
+
+  //-디스크 저장방식 -//
 
   @ApiOperation({ summary: '파일 리스트 저장' })
   @Post('files/upload')
