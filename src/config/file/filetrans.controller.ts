@@ -3,29 +3,55 @@ import { Response } from 'express';
 
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { FileTransService } from './filetrans.service';
 import { multerOptionsFactory } from './multer.option.factory';
+import * as multer from 'multer';
 
 @Controller()
 @ApiTags('File')
 export class FileTransController {
   constructor(private fileService: FileTransService) {}
 
-  @UseInterceptors(FileInterceptor('file'))
+  @Post('upload')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiOperation({ summary: '파일 업로드', description: '파일을 클라우드 스토리지에 업로드합니다.' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file', { storage: multer.memoryStorage() }))
   async cloudUploadFile(@UploadedFile() file: Express.Multer.File) {
-    const url = await this.fileService.upload(file);
+    console.log('업로드된 파일:', file.originalname, file.size); // ✅ 확인용
+
+    const url = await this.fileService.upload(file); //
     return { url };
   }
 
   @Get(':filename')
+  @ApiOperation({ summary: '파일 다운로드', description: '클라우드 스토리지에서 파일을 다운로드합니다.' })
+  @ApiParam({ name: 'filename', description: '다운로드할 파일명' })
   async cloudDownloadFile(@Param('filename') filename: string, @Res() res: Response) {
     const file = await this.fileService.download(filename);
-    res.setHeader('Content-Type', 'application/octet-stream');
+    //res.setHeader('Content-Type', 'application/octet-stream');
+    res.set({
+      'Content-Type': 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    });
     res.send(file);
   }
 
   @Delete(':filename')
+  @ApiOperation({ summary: '파일 삭제', description: '클라우드 스토리지에서 파일을 삭제합니다.' })
+  @ApiParam({ name: 'filename', description: '삭제할 파일명' })
+  @ApiResponse({ status: 200, description: '삭제 완료', schema: { example: { message: '삭제 완료' } } })
   async delete(@Param('filename') filename: string) {
     await this.fileService.delete(filename);
     return { message: '삭제 완료' };
