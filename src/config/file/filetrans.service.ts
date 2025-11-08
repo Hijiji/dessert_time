@@ -1,11 +1,91 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { ObjectStorageClient } from 'oci-objectstorage';
+import { ConfigFileAuthenticationDetailsProvider } from 'oci-common';
+import * as oci from 'oci-sdk';
+
 import * as path from 'path';
 import * as fs from 'fs';
+import { Readable } from 'stream';
 
 @Injectable()
 export class FileTransService {
-  constructor() {}
+  private readonly objectStorage: ObjectStorageClient;
+  private readonly namespaceName: string;
+  private readonly bucketName = 'dessert-time-bucket'; // 생성한 버킷 이름
 
+  constructor() {
+    const provider = new ConfigFileAuthenticationDetailsProvider(); // ~/.oci/config 사용
+    this.objectStorage = new ObjectStorageClient({ authenticationDetailsProvider: provider });
+    this.namespaceName = process.env.OCI_NAMESPACE || 'axnq53u2nw4n'; // 아래에 나올 Namespace 등록 필요
+  }
+
+  //storage에 파일 업로드
+  async upload(file: Express.Multer.File): Promise<string> {
+    if (!file) throw new BadRequestException('파일이 존재하지 않습니다.');
+
+    const request = {
+      namespaceName: this.namespaceName,
+      bucketName: this.bucketName,
+      objectName: file.originalname,
+      putObjectBody: file.buffer,
+      contentLength: file.size,
+    };
+
+    await this.objectStorage.putObject(request);
+
+    // Object URL 형식 반환 (공개 버킷일 경우 바로 접근 가능)
+    return `https://objectstorage.ap-seoul-1.oraclecloud.com/n/${this.namespaceName}/b/${this.bucketName}/o/${encodeURIComponent(file.originalname)}`;
+  }
+
+  //storage에 파일 다운로드
+  async download(filename: string): Promise<Buffer> {
+    try {
+      const response = await this.objectStorage.getObject({
+        namespaceName: this.namespaceName,
+        bucketName: this.bucketName,
+        objectName: filename,
+      });
+
+      const value = response.value;
+
+      // Node.js Readable Stream인 경우
+      if (value instanceof Readable) {
+        const chunks: Buffer[] = [];
+        return new Promise((resolve, reject) => {
+          value.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+          value.on('end', () => resolve(Buffer.concat(chunks)));
+          value.on('error', (err) => reject(err));
+        });
+      }
+
+      //  Web ReadableStream인 경우 (Node 18+ 환경에서 사용)
+      if (value && typeof value.getReader === 'function') {
+        const reader = value.getReader();
+        const chunks: Uint8Array[] = [];
+
+        while (true) {
+          const { done, value: chunk } = await reader.read();
+          if (done) break;
+          chunks.push(chunk);
+        }
+
+        return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
+      }
+    } catch (error) {
+      //if (error.statusCode === 404) throw new NotFoundException('요청한 파일을 찾을 수 없습니다.');
+      throw new InternalServerErrorException(`파일 다운로드 실패: ${error.message}`);
+    }
+  }
+  // storage에 파일 삭제
+  async delete(filename: string): Promise<void> {
+    await this.objectStorage.deleteObject({
+      namespaceName: this.namespaceName,
+      bucketName: this.bucketName,
+      objectName: filename,
+    });
+  }
+
+  //-기존 데이터-//
   async uploadFiles(files: Array<Express.Multer.File>) {
     if (!files) {
       throw Error('파일이 존재하지 않습니다.');
