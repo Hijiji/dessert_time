@@ -11,11 +11,12 @@ import { ReviewImg } from 'src/config/entities/review.img.entity';
 import { Ingredient } from 'src/config/entities/ingredient.entity';
 import { AdminPointModule } from 'src/backoffice-modules/admin-point/admin-point.module';
 import { BlockedMember } from 'src/config/entities/blocked.member.entity';
+import { FileTransService } from 'src/config/file/filetrans.service';
 
 @Module({
   imports: [AdminPointModule, TypeOrmModule.forFeature([Review, Like, Member, Ingredient, ReviewIngredient, ReviewImg, BlockedMember])],
   exports: [],
   controllers: [ReviewController],
-  providers: [ReviewService, ReviewRepository],
+  providers: [ReviewService, ReviewRepository, FileTransService],
 })
 export class ReviewModule {}

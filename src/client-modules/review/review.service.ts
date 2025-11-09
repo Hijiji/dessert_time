@@ -22,12 +22,14 @@ import { PointType } from 'src/common/enum/point.enum';
 import { Ingredient } from 'src/config/entities/ingredient.entity';
 import { ReviewsRequestDto } from './dto/reviews.request.dto';
 import { ResponseCursorPagination } from 'src/common/pagination/response.cursor.pagination';
+import { FileTransService } from 'src/config/file/filetrans.service';
 
 @Injectable()
 export class ReviewService {
   constructor(
     private reviewRepository: ReviewRepository,
     private adminPointService: AdminPointService,
+    private fileService: FileTransService,
   ) {}
 
   /**
@@ -347,12 +349,18 @@ export class ReviewService {
     }
     const extention = path.extname(file.originalname); // 파일 확장자 추출
     const imgName = path.basename(file.originalname, extention); // 파일 이름
-    const lastpath = file.filename;
+
+    file.originalname = Buffer.from(file.originalname, 'ascii').toString('utf8');
+    const lastpath = this.fileService.generateFilename(file.originalname);
+
     const fileData = {
       imgName,
       extention,
       path: lastpath,
     };
+    //클라우드 스토리지에 파일 업로드
+    await this.fileService.upload(file, lastpath, 'reviewImg');
+
     const savedData = await this.reviewRepository.insertReviewImg(reviewImgSaveDto, fileData);
     return { reviewImgId: savedData['raw']['reviewImgId'] };
   }

@@ -6,6 +6,7 @@ import * as oci from 'oci-sdk';
 import * as path from 'path';
 import * as fs from 'fs';
 import { Readable } from 'stream';
+import { v4 as uuid } from 'uuid';
 
 @Injectable()
 export class FileTransService {
@@ -19,8 +20,15 @@ export class FileTransService {
     this.namespaceName = process.env.OCI_NAMESPACE || 'axnq53u2nw4n'; // 아래에 나올 Namespace 등록 필요
   }
 
+  //파일명 변경
+  async generateFilename(originalName: string) {
+    const ext = path.extname(originalName); // 확장자 추출 (.png)
+    const basename = path.basename(originalName, ext); // 파일명 (example)
+    return `${basename}_${uuid().substring(0, 10)}${ext}`; // example_f81d4fae7d.png
+  }
+
   //storage에 파일 업로드
-  async upload(file: Express.Multer.File): Promise<string> {
+  async upload(file: Express.Multer.File, fileName, middlePath): Promise<string> {
     if (!file) throw new BadRequestException('파일이 존재하지 않습니다.');
 
     const request = {
@@ -34,7 +42,7 @@ export class FileTransService {
     await this.objectStorage.putObject(request);
 
     // Object URL 형식 반환 (공개 버킷일 경우 바로 접근 가능)
-    return `https://objectstorage.ap-seoul-1.oraclecloud.com/n/${this.namespaceName}/b/${this.bucketName}/o/${encodeURIComponent(file.originalname)}`;
+    return `https://objectstorage.ap-seoul-1.oraclecloud.com/n/${this.namespaceName}/b/${this.bucketName}/o/${middlePath}/${fileName}`;
   }
 
   //storage에 파일 다운로드

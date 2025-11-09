@@ -31,7 +31,7 @@ export class FileTransController {
   async cloudUploadFile(@UploadedFile() file: Express.Multer.File) {
     console.log('업로드된 파일:', file.originalname, file.size); // ✅ 확인용
 
-    const url = await this.fileService.upload(file); //
+    const url = await this.fileService.upload(file, file.originalname, 'test'); //
     return { url };
   }
 

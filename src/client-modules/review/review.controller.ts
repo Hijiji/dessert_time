@@ -16,6 +16,7 @@ import { MemberIdPagingDto } from './dto/review.dto';
 import { JwtAuthGuard } from 'src/config/auth/jwt/jwt.guard';
 import { ReviewMemberIdDto } from './dto/review.member.dto';
 import { ReviewsRequestDto } from './dto/reviews.request.dto';
+import * as multer from 'multer';
 
 @Controller('review')
 @ApiTags('Review')
@@ -79,7 +80,7 @@ export class ReviewController {
   async patchGenerableReview(@Body() reviewUpdateDto: ReviewUpdateDto) {
     return await this.reviewService.patchGenerableReview(reviewUpdateDto);
   }
-
+  /*
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
@@ -100,7 +101,27 @@ export class ReviewController {
   async postReviewImg(@UploadedFile() file: Express.Multer.File, @Param() reviewImgSaveDto: ReviewImgSaveDto) {
     return await this.reviewService.postReviewImg(reviewImgSaveDto, file);
   }
-
+*/
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file', { storage: multer.memoryStorage() }))
+  @ApiOperation({ summary: '리뷰이미지 하나 저장' })
+  @Post('generable/img/:reviewId/:num/:isMain')
+  async postReviewImg(@UploadedFile() file: Express.Multer.File, @Param() reviewImgSaveDto: ReviewImgSaveDto) {
+    return await this.reviewService.postReviewImg(reviewImgSaveDto, file);
+  }
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '리뷰이미지 하나 삭제' })
