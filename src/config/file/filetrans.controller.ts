@@ -53,7 +53,7 @@ export class FileTransController {
   @ApiParam({ name: 'filename', description: '삭제할 파일명' })
   @ApiResponse({ status: 200, description: '삭제 완료', schema: { example: { message: '삭제 완료' } } })
   async delete(@Param('filename') filename: string) {
-    await this.fileService.delete(filename);
+    await this.fileService.delete('test', filename);
     return { message: '삭제 완료' };
   }
 

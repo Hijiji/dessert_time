@@ -85,11 +85,11 @@ export class FileTransService {
     }
   }
   // storage에 파일 삭제
-  async delete(filename: string): Promise<void> {
+  async delete(middlePath: string, filename: string): Promise<void> {
     await this.objectStorage.deleteObject({
       namespaceName: this.namespaceName,
       bucketName: this.bucketName,
-      objectName: filename,
+      objectName: `${middlePath}/${filename}`,
     });
   }
 
