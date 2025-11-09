@@ -12,11 +12,12 @@ import { UserInterestDessert } from 'src/config/entities/user.interest.dessert.e
 import { MemberDeletion } from 'src/config/entities/member.deleteion.entity';
 import { AuthModule } from 'src/config/auth/auth.module';
 import { ProfileImg } from 'src/config/entities/profile.img.entity';
+import { FileTransService } from 'src/config/file/filetrans.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Member, ProfileImg, Review, Point, PointHistory, Notice, UserInterestDessert, MemberDeletion]), AuthModule],
   exports: [],
   controllers: [MemberController],
-  providers: [MemberService, MemberRepository],
+  providers: [MemberService, MemberRepository, FileTransService],
 })
 export class MemberModule {}

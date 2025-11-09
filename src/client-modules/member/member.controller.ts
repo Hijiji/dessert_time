@@ -16,6 +16,7 @@ import { MemberIdPagingDto } from './dto/member.id.paging.dto';
 import { JwtAuthGuard } from 'src/config/auth/jwt/jwt.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerOptionsFactory } from 'src/config/file/multer.option.factory';
+import * as multer from 'multer';
 
 @ApiTags('Member')
 @Controller('member')
@@ -66,6 +67,7 @@ export class MemberController {
     return await this.memberService.patchMember(memberUpdateDto);
   }
 
+  /* 디스크 저장방식
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
@@ -81,6 +83,28 @@ export class MemberController {
     },
   })
   @UseInterceptors(FileInterceptor('file', multerOptionsFactory('useImg')))
+  @ApiOperation({ summary: '마이페이지 - 사용자 이미지 수정하기' })
+  @Patch('/my-page/img/:memberId')
+  async patchMemberImg(@UploadedFile() file: Express.Multer.File, @Param() memberIdDto: MemberIdDto) {
+    return await this.memberService.patchMemberImg(file, memberIdDto);
+  }
+*/
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file', { storage: multer.memoryStorage() }))
   @ApiOperation({ summary: '마이페이지 - 사용자 이미지 수정하기' })
   @Patch('/my-page/img/:memberId')
   async patchMemberImg(@UploadedFile() file: Express.Multer.File, @Param() memberIdDto: MemberIdDto) {
