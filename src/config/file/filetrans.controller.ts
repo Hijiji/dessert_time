@@ -29,9 +29,7 @@ export class FileTransController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', { storage: multer.memoryStorage() }))
   async cloudUploadFile(@UploadedFile() file: Express.Multer.File) {
-    console.log('업로드된 파일:', file.originalname, file.size); // ✅ 확인용
-
-    const url = await this.fileService.upload(file, file.originalname, 'test'); //
+    const url = await this.fileService.upload(file, file.originalname, 'test');
     return { url };
   }
 
@@ -40,7 +38,6 @@ export class FileTransController {
   @ApiParam({ name: 'filename', description: '다운로드할 파일명' })
   async cloudDownloadFile(@Param('filename') filename: string, @Res() res: Response) {
     const file = await this.fileService.download(filename);
-    //res.setHeader('Content-Type', 'application/octet-stream');
     res.set({
       'Content-Type': 'application/octet-stream',
       'Content-Disposition': `attachment; filename="${filename}"`,

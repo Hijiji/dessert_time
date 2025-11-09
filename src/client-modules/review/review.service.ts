@@ -347,8 +347,8 @@ export class ReviewService {
         description: '등록가능한 최대 이미지는 4개입니다.',
       });
     }
-    const extention = path.extname(file.originalname); // 파일 확장자 추출
-    const imgName = path.basename(file.originalname, extention); // 파일 이름
+    const extention = path.extname(file.originalname);
+    const imgName = path.basename(file.originalname, extention);
 
     file.originalname = Buffer.from(file.originalname, 'ascii').toString('utf8');
     const lastpath = this.fileService.generateFilename(file.originalname);
@@ -358,6 +358,7 @@ export class ReviewService {
       extention,
       path: lastpath,
     };
+
     //클라우드 스토리지에 파일 업로드
     await this.fileService.upload(file, lastpath, 'reviewImg');
 
@@ -368,7 +369,6 @@ export class ReviewService {
   /**
    * 리뷰이미지 하나 삭제
    * @param reviewImgIdDto
-   * todo 삭제할때 파일도 삭제해야함
    */
   @Transactional()
   async deleteReviewImg(reviewImgIdDto: ReviewImgIdDto) {

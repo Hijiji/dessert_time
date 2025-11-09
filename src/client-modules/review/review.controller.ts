@@ -80,7 +80,8 @@ export class ReviewController {
   async patchGenerableReview(@Body() reviewUpdateDto: ReviewUpdateDto) {
     return await this.reviewService.patchGenerableReview(reviewUpdateDto);
   }
-  /*
+
+  /* 디스크 저장방식
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
@@ -102,6 +103,7 @@ export class ReviewController {
     return await this.reviewService.postReviewImg(reviewImgSaveDto, file);
   }
 */
+
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
