@@ -17,12 +17,14 @@ import { MemberDeletion } from '../../common/enum/member.enum';
 import { MemberIdPagingDto } from './dto/member.id.paging.dto';
 import { AuthService } from 'src/config/auth/auth.service';
 import * as path from 'path';
+import { FileTransService } from 'src/config/file/filetrans.service';
 
 @Injectable()
 export class MemberService {
   constructor(
     private memberRepository: MemberRepository,
     private readonly authService: AuthService,
+    private fileService: FileTransService,
   ) {}
 
   /**
@@ -229,12 +231,18 @@ export class MemberService {
     try {
       const extention = path.extname(file.originalname); // 파일 확장자 추출
       const imgName = path.basename(file.originalname, extention); // 파일 이름
-      const lastpath = file.filename;
+
+      file.originalname = Buffer.from(file.originalname, 'ascii').toString('utf8');
+      const lastpath = this.fileService.generateFilename(file.originalname);
       const fileData = {
         imgName,
         extention,
         path: lastpath,
       };
+
+      //클라우드 스토리지에 파일 업로드
+      await this.fileService.upload(file, lastpath, 'useImg');
+
       const savedData = await this.memberRepository.upsertMemberImg(fileData, memberIdDto);
       return { memberImgId: savedData['raw']?.[0]?.profileImgId };
     } catch (error) {

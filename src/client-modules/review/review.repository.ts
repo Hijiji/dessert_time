@@ -549,6 +549,14 @@ export class ReviewRepository {
     await this.reviewImg.delete(reviewImgIdDto);
   }
 
+  /**
+   * 리뷰이미지 이름 조회
+   * @param reviewImgIdDto
+   */
+  async findReviewImg(reviewImgIdDto: ReviewImgIdDto) {
+    return await this.reviewImg.findOne({ select: { path: true }, where: { reviewImgId: reviewImgIdDto.reviewImgId } });
+  }
+
   async findReviewImgId(reviewImgId) {
     return await this.reviewImg.findOne({
       where: { reviewImgId },

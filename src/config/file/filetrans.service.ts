@@ -6,6 +6,7 @@ import * as oci from 'oci-sdk';
 import * as path from 'path';
 import * as fs from 'fs';
 import { Readable } from 'stream';
+import { v4 as uuid } from 'uuid';
 
 @Injectable()
 export class FileTransService {
@@ -16,11 +17,28 @@ export class FileTransService {
   constructor() {
     const provider = new ConfigFileAuthenticationDetailsProvider(); // ~/.oci/config 사용
     this.objectStorage = new ObjectStorageClient({ authenticationDetailsProvider: provider });
-    this.namespaceName = process.env.OCI_NAMESPACE || 'axnq53u2nw4n'; // 아래에 나올 Namespace 등록 필요
+    this.namespaceName = process.env.OCI_NAMESPACE || 'axnq53u2nw4n';
   }
 
-  //storage에 파일 업로드
-  async upload(file: Express.Multer.File): Promise<string> {
+  /**
+   * 파일명 변경
+   * @param originalName
+   * @returns
+   */
+  async generateFilename(originalName: string) {
+    const ext = path.extname(originalName); // 확장자 추출 (.png)
+    const basename = path.basename(originalName, ext); // 파일명 (example)
+    return `${basename}_${uuid().substring(0, 10)}${ext}`; // example_f81d4fae7d.png
+  }
+
+  /**
+   * storage에 파일 업로드
+   * @param file
+   * @param fileName
+   * @param middlePath
+   * @returns
+   */
+  async upload(file: Express.Multer.File, fileName, middlePath): Promise<string> {
     if (!file) throw new BadRequestException('파일이 존재하지 않습니다.');
 
     const request = {
@@ -34,10 +52,14 @@ export class FileTransService {
     await this.objectStorage.putObject(request);
 
     // Object URL 형식 반환 (공개 버킷일 경우 바로 접근 가능)
-    return `https://objectstorage.ap-seoul-1.oraclecloud.com/n/${this.namespaceName}/b/${this.bucketName}/o/${encodeURIComponent(file.originalname)}`;
+    return `https://objectstorage.ap-seoul-1.oraclecloud.com/n/${this.namespaceName}/b/${this.bucketName}/o/${middlePath}/${fileName}`;
   }
 
-  //storage에 파일 다운로드
+  /**
+   * storage에 파일 다운로드
+   * @param filename
+   * @returns
+   */
   async download(filename: string): Promise<Buffer> {
     try {
       const response = await this.objectStorage.getObject({
@@ -72,16 +94,19 @@ export class FileTransService {
         return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
       }
     } catch (error) {
-      //if (error.statusCode === 404) throw new NotFoundException('요청한 파일을 찾을 수 없습니다.');
       throw new InternalServerErrorException(`파일 다운로드 실패: ${error.message}`);
     }
   }
-  // storage에 파일 삭제
-  async delete(filename: string): Promise<void> {
+  /**
+   * storage에 파일 삭제
+   * @param middlePath
+   * @param filename
+   */
+  async delete(middlePath: string, filename: string): Promise<void> {
     await this.objectStorage.deleteObject({
       namespaceName: this.namespaceName,
       bucketName: this.bucketName,
-      objectName: filename,
+      objectName: `${middlePath}/${filename}`,
     });
   }
 
