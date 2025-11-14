@@ -60,12 +60,12 @@ export class FileTransService {
    * @param filename
    * @returns
    */
-  async download(filename: string): Promise<Buffer> {
+  async download(path: string, middlePath: string): Promise<Buffer> {
     try {
       const response = await this.objectStorage.getObject({
         namespaceName: this.namespaceName,
         bucketName: this.bucketName,
-        objectName: filename,
+        objectName: `${middlePath}/${path}`,
       });
 
       const value = response.value;
