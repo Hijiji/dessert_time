@@ -376,6 +376,18 @@ export class MemberRepository {
   }
 
   /**
+   * 사용자 이미지파일 하나 조회
+   * @param memberId
+   * @returns
+   */
+  async findMemberImg(memberId) {
+    return await this.profileImgRepository.findOne({
+      select: { path: true, middlePath: true },
+      where: { member: { memberId: memberId } },
+    });
+  }
+
+  /**
    * 기존에 사용자가 선택한 디저트 카테고리 삭제
    * @param memberUpdateDto
    * @returns

@@ -230,6 +230,11 @@ export class MemberService {
   @Transactional()
   async patchMemberImg(file, memberIdDto: MemberIdDto) {
     try {
+      const memberData = await this.memberRepository.findMemberImg(memberIdDto.memberId);
+      if (memberData) {
+        await this.fileService.delete(memberData.middlePath, memberData.path);
+      }
+
       const extention = path.extname(file.originalname); // 파일 확장자 추출
       const imgName = path.basename(file.originalname, extention); // 파일 이름
 
