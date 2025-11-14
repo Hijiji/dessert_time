@@ -23,6 +23,7 @@ import { Ingredient } from 'src/config/entities/ingredient.entity';
 import { ReviewsRequestDto } from './dto/reviews.request.dto';
 import { ResponseCursorPagination } from 'src/common/pagination/response.cursor.pagination';
 import { FileTransService } from 'src/config/file/filetrans.service';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class ReviewService {
@@ -352,15 +353,18 @@ export class ReviewService {
 
     file.originalname = Buffer.from(file.originalname, 'ascii').toString('utf8');
     const lastpath = this.fileService.generateFilename(file.originalname);
+    const today = dayjs().format('YYYYMMDD');
+    const middlePath = `reviewImg/${today}`;
 
     const fileData = {
       imgName,
       extention,
+      middlePath,
       path: lastpath,
     };
 
     //클라우드 스토리지에 파일 업로드
-    await this.fileService.upload(file, lastpath, 'reviewImg');
+    await this.fileService.upload(file, lastpath, middlePath);
 
     const savedData = await this.reviewRepository.insertReviewImg(reviewImgSaveDto, fileData);
     return { reviewImgId: savedData['raw']['reviewImgId'] };

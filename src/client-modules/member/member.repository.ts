@@ -360,13 +360,13 @@ export class MemberRepository {
       // update
       existingImg.path = file.path;
       existingImg.extension = file.extention;
-      existingImg.middlePath = 'useImg';
+      existingImg.middlePath = file.middlePath;
       existingImg.imgName = file.imgName;
       return await this.profileImgRepository.save(existingImg);
     } else {
       // insert
       return await this.profileImgRepository.save({
-        middlePath: 'useImg',
+        middlePath: file.middlePath,
         path: file.path,
         extension: file.extention,
         imgName: file.imgName,

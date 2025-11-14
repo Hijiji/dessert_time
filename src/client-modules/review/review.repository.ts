@@ -531,7 +531,7 @@ export class ReviewRepository {
    */
   async insertReviewImg(reviewImgSaveDto: ReviewImgSaveDto, file) {
     return await this.reviewImg.insert({
-      middlepath: 'reviewImg', //process.env.REVIEW_IMG_MIDDLE_PATH,
+      middlepath: file.middlePath,
       path: file.path,
       extention: file.extention,
       imgName: file.imgName,
