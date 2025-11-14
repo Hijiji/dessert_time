@@ -361,19 +361,31 @@ export class MemberRepository {
       // update
       existingImg.path = file.path;
       existingImg.extension = file.extention;
-      existingImg.middlePath = 'useImg';
+      existingImg.middlePath = file.middlePath;
       existingImg.imgName = file.imgName;
       return await this.profileImgRepository.save(existingImg);
     } else {
       // insert
       return await this.profileImgRepository.save({
-        middlePath: 'useImg',
+        middlePath: file.middlePath,
         path: file.path,
         extension: file.extention,
         imgName: file.imgName,
         member: { memberId: memberIdDto.memberId },
       });
     }
+  }
+
+  /**
+   * 사용자 이미지파일 하나 조회
+   * @param memberId
+   * @returns
+   */
+  async findMemberImg(memberId) {
+    return await this.profileImgRepository.findOne({
+      select: { path: true, middlePath: true },
+      where: { member: { memberId: memberId } },
+    });
   }
 
   /**

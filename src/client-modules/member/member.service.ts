@@ -18,6 +18,7 @@ import { MemberIdPagingDto } from './dto/member.id.paging.dto';
 import { AuthService } from 'src/config/auth/auth.service';
 import * as path from 'path';
 import { FileTransService } from 'src/config/file/filetrans.service';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class MemberService {
@@ -229,19 +230,27 @@ export class MemberService {
   @Transactional()
   async patchMemberImg(file, memberIdDto: MemberIdDto) {
     try {
+      const memberData = await this.memberRepository.findMemberImg(memberIdDto.memberId);
+      if (memberData) {
+        await this.fileService.delete(memberData.middlePath, memberData.path);
+      }
+
       const extention = path.extname(file.originalname); // 파일 확장자 추출
       const imgName = path.basename(file.originalname, extention); // 파일 이름
 
       file.originalname = Buffer.from(file.originalname, 'ascii').toString('utf8');
       const lastpath = this.fileService.generateFilename(file.originalname);
+      const today = dayjs().format('YYYYMMDD');
+      const middlePath = `useImg/${today}`;
+
       const fileData = {
         imgName,
         extention,
+        middlePath,
         path: lastpath,
       };
-
       //클라우드 스토리지에 파일 업로드
-      await this.fileService.upload(file, lastpath, 'useImg');
+      await this.fileService.upload(file, lastpath, middlePath);
 
       const savedData = await this.memberRepository.upsertMemberImg(fileData, memberIdDto);
       return { memberImgId: savedData['raw']?.[0]?.profileImgId };

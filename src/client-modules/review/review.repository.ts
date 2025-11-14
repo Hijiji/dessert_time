@@ -531,7 +531,7 @@ export class ReviewRepository {
    */
   async insertReviewImg(reviewImgSaveDto: ReviewImgSaveDto, file) {
     return await this.reviewImg.insert({
-      middlepath: 'reviewImg', //process.env.REVIEW_IMG_MIDDLE_PATH,
+      middlepath: file.middlePath,
       path: file.path,
       extention: file.extention,
       imgName: file.imgName,
@@ -554,7 +554,7 @@ export class ReviewRepository {
    * @param reviewImgIdDto
    */
   async findReviewImg(reviewImgIdDto: ReviewImgIdDto) {
-    return await this.reviewImg.findOne({ select: { path: true }, where: { reviewImgId: reviewImgIdDto.reviewImgId } });
+    return await this.reviewImg.findOne({ select: { path: true, middlepath: true }, where: { reviewImgId: reviewImgIdDto.reviewImgId } });
   }
 
   async findReviewImgId(reviewImgId) {
