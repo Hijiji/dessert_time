@@ -379,7 +379,7 @@ export class ReviewService {
     try {
       //파일 하나 조회, 클라우드 내. 물리 파일 삭제, 파일정보 삭제
       const file = await this.reviewRepository.findReviewImg(reviewImgIdDto);
-      await this.fileService.delete('reviewImg', file.path);
+      await this.fileService.delete(file.middlepath, file.path);
       await this.reviewRepository.deleteReviewImg(reviewImgIdDto);
     } catch (error) {
       throw error;

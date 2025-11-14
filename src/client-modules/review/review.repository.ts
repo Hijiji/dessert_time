@@ -554,7 +554,7 @@ export class ReviewRepository {
    * @param reviewImgIdDto
    */
   async findReviewImg(reviewImgIdDto: ReviewImgIdDto) {
-    return await this.reviewImg.findOne({ select: { path: true }, where: { reviewImgId: reviewImgIdDto.reviewImgId } });
+    return await this.reviewImg.findOne({ select: { path: true, middlepath: true }, where: { reviewImgId: reviewImgIdDto.reviewImgId } });
   }
 
   async findReviewImgId(reviewImgId) {
