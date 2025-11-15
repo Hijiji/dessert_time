@@ -17,9 +17,8 @@ export class AdminPointController {
   })
   @Post('save/:memberId')
   async save(@Param('memberId') memberId: number, @Body() createAdminPointDto: UpdateAdminPointDto) {
-    return await this.adminPointService.saveRecallPoint('save', memberId, createAdminPointDto);
+    return await this.adminPointService.saveRecallPoint('save', memberId, createAdminPointDto, null);
   }
-
 
   @ApiOperation({ summary: '포인트 회수' })
   @ApiParam({
@@ -30,6 +29,6 @@ export class AdminPointController {
   })
   @Post('recall/:memberId')
   async recall(@Param('memberId') memberId: number, @Body() createAdminPointDto: UpdateAdminPointDto) {
-    return await this.adminPointService.saveRecallPoint('recall', memberId, createAdminPointDto);
+    return await this.adminPointService.saveRecallPoint('recall', memberId, createAdminPointDto, null);
   }
 }

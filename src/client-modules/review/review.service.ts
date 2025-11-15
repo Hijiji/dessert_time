@@ -3,7 +3,6 @@ import { ReviewRepository } from './review.repository';
 import { ReviewCategoryDto } from './dto/review.category.dto';
 import { LikeDto } from './dto/like.dto';
 import { MemberIdDto } from './dto/member.id.dto';
-import { typeORMConfig } from 'src/config/typeorm/typeorm.config';
 import { ReviewCreateDto } from './dto/review.create.dto';
 import { ReviewIdDto } from './dto/review.id.dto';
 import { ReviewUpdateDto } from './dto/review.update.dto';
@@ -263,7 +262,10 @@ export class ReviewService {
   @Transactional()
   async deleteReview(reviewIdDto: ReviewIdDto) {
     try {
+      const updateAdminPointDto: UpdateAdminPointDto = { newPoint: 5, pointType: 'A' } as UpdateAdminPointDto;
       //todo testcode 리뷰 숨김, 포인트 삭감
+      await this.adminPointService.saveRecallPoint('recall', reviewIdDto.memberId, updateAdminPointDto, reviewIdDto.reviewId);
+
       await this.reviewRepository.updateReviewStatus(reviewIdDto);
     } catch (error) {
       throw error;
