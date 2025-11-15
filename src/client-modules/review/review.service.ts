@@ -19,7 +19,6 @@ import { ReviewMemberIdDto } from './dto/review.member.dto';
 import { AdminPointService } from 'src/backoffice-modules/admin-point/admin-point.service';
 import { UpdateAdminPointDto } from 'src/backoffice-modules/admin-point/model/update-admin-point.dto';
 import { PointType } from 'src/common/enum/point.enum';
-import { Ingredient } from 'src/config/entities/ingredient.entity';
 import { ReviewsRequestDto } from './dto/reviews.request.dto';
 import { ResponseCursorPagination } from 'src/common/pagination/response.cursor.pagination';
 import { FileTransService } from 'src/config/file/filetrans.service';
@@ -40,6 +39,7 @@ export class ReviewService {
    */
   async findReviewOne(reviewMemberIdDto: ReviewMemberIdDto) {
     try {
+      //todo testcode
       const rawReviews = await this.reviewRepository.findReviewOne(reviewMemberIdDto);
       if (rawReviews.length < 1) {
         throw new BadRequestException('존재하지 않는 정보', {
@@ -142,7 +142,6 @@ export class ReviewService {
       if (randomReviewCount > 0) {
         //사용가능한 카테고리가 없거나 25개보다 적은경우
         const randomCategoryList = await this.reviewRepository.findRandomCategoryList(randomReviewCount, memberIdDto.memberId);
-        console.log('randomCategoryList ::', randomCategoryList);
 
         const mainRandomCategoryList = await Promise.all(
           randomCategoryList.map(async (category) => {
@@ -170,7 +169,6 @@ export class ReviewService {
    */
   @Transactional()
   async findReviewCategoryList(reviewCategoryDto: ReviewCategoryDto) {
-    //todo
     try {
       let reviewCategoryList: any[] = await this.reviewRepository.findReviewCategoryList(reviewCategoryDto);
       const grouped = new Map();
@@ -259,13 +257,13 @@ export class ReviewService {
 
   /**
    * 등록한 리뷰 삭제하기
-   *  todo -- 리뷰 숨김, 포인트 삭감
    * @param reviewIdDto
    * @returns
    */
   @Transactional()
   async deleteReview(reviewIdDto: ReviewIdDto) {
     try {
+      //todo testcode 리뷰 숨김, 포인트 삭감
       await this.reviewRepository.updateReviewStatus(reviewIdDto);
     } catch (error) {
       throw error;
@@ -417,6 +415,7 @@ export class ReviewService {
   @Transactional()
   async getLikedReviewList(reviewsRequestDto: ReviewsRequestDto) {
     try {
+      //todo testcode
       const likedReviewList: any[] = await this.reviewRepository.findLikedReviewList(reviewsRequestDto);
       const grouped = new Map();
       likedReviewList.forEach((review) => {

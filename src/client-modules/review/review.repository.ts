@@ -587,8 +587,8 @@ export class ReviewRepository {
     const { cursor, limit } = reviewsRequestDto;
     const orderField = reviewsRequestDto.sort === 'D' ? 'createdDate' : 'totalLikedNum';
 
-    //todo 차단되지 않은 사용자들의 리뷰만 조회
-    //not in (findBlockedUsers(memberId))
+    //차단된 사용자 ID 목록 조회
+    const blockedIds = await this.findBlockedUsers(reviewsRequestDto.memberId);
 
     // 리뷰 ID만 먼저 조회 (중복 제거)
     const reviewIdQuery = this.review
@@ -598,6 +598,7 @@ export class ReviewRepository {
       .where('review.isUsable = :isUsable', { isUsable: true })
       .andWhere('review.status = :status', { status: ReviewStatus.SAVED })
       .andWhere('like.memberMemberId = :likeMemberId', { likeMemberId: reviewsRequestDto.memberId })
+      .andWhere(blockedIds.length > 0 ? 'review.memberId NOT IN (:...blockedIds)' : '1=1', { blockedIds })
       .orderBy(`review.${orderField}`, 'DESC')
       .take(limit + 1);
 
