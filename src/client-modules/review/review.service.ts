@@ -17,7 +17,6 @@ import { ReviewSaveDto } from './dto/review.save.dto';
 import { ReviewMemberIdDto } from './dto/review.member.dto';
 import { AdminPointService } from 'src/backoffice-modules/admin-point/admin-point.service';
 import { UpdateAdminPointDto } from 'src/backoffice-modules/admin-point/model/update-admin-point.dto';
-import { PointType } from 'src/common/enum/point.enum';
 import { ReviewsRequestDto } from './dto/reviews.request.dto';
 import { ResponseCursorPagination } from 'src/common/pagination/response.cursor.pagination';
 import { FileTransService } from 'src/config/file/filetrans.service';
@@ -38,7 +37,7 @@ export class ReviewService {
    */
   async findReviewOne(reviewMemberIdDto: ReviewMemberIdDto) {
     try {
-      //todo testcode
+      //todo testcode 조회자 차단여부 테스트
       const rawReviews = await this.reviewRepository.findReviewOne(reviewMemberIdDto);
       if (rawReviews.length < 1) {
         throw new BadRequestException('존재하지 않는 정보', {
@@ -262,8 +261,8 @@ export class ReviewService {
   @Transactional()
   async deleteReview(reviewIdDto: ReviewIdDto) {
     try {
-      const updateAdminPointDto: UpdateAdminPointDto = { newPoint: 5, pointType: 'A' } as UpdateAdminPointDto;
       //todo testcode 리뷰 숨김, 포인트 삭감
+      const updateAdminPointDto: UpdateAdminPointDto = { newPoint: 5, pointType: 'A' } as UpdateAdminPointDto;
       await this.adminPointService.saveRecallPoint('recall', reviewIdDto.memberId, updateAdminPointDto, reviewIdDto.reviewId);
 
       await this.reviewRepository.updateReviewStatus(reviewIdDto);
@@ -315,9 +314,9 @@ export class ReviewService {
     //재료 저장
     const ingredientDto = { ...reviewUpdateDto, reviewId: newReview.reviewId };
     await this.saveIngredient(ingredientDto);
-    //포인트 저장
-    const updateAdminPointDto = new UpdateAdminPointDto(5, PointType.REVIEW);
-    await this.adminPointService.processUpsertPointByReview(reviewUpdateDto.memberId, updateAdminPointDto, reviewUpdateDto.reviewId);
+    //testcode - 포인트 저장
+    const updateAdminPointDto: UpdateAdminPointDto = { newPoint: 5, pointType: 'R' } as UpdateAdminPointDto;
+    await this.adminPointService.saveRecallPoint('save', reviewUpdateDto.memberId, updateAdminPointDto, reviewUpdateDto.reviewId);
 
     return { reviewId: newReview.reviewId };
   }
@@ -417,7 +416,7 @@ export class ReviewService {
   @Transactional()
   async getLikedReviewList(reviewsRequestDto: ReviewsRequestDto) {
     try {
-      //todo testcode
+      //todo testcode 조회자 차단여부 테스트
       const likedReviewList: any[] = await this.reviewRepository.findLikedReviewList(reviewsRequestDto);
       const grouped = new Map();
       likedReviewList.forEach((review) => {
