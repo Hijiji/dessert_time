@@ -329,6 +329,7 @@ export class ReviewService {
    */
   @Transactional()
   async postReviewImg(reviewImgSaveDto: ReviewImgSaveDto, file) {
+    //todo testcode 이미지 저장 - cloud storage 변경건
     const isReviewData = await this.reviewRepository.findReviewId(reviewImgSaveDto.reviewId);
 
     if (!isReviewData) {
@@ -373,7 +374,7 @@ export class ReviewService {
   @Transactional()
   async deleteReviewImg(reviewImgIdDto: ReviewImgIdDto) {
     try {
-      //파일 하나 조회, 클라우드 내. 물리 파일 삭제, 파일정보 삭제
+      //todo testcode 이미지 삭제 - cloud storage 변경건
       const file = await this.reviewRepository.findReviewImg(reviewImgIdDto);
       await this.fileService.delete(file.middlepath, file.path);
       await this.reviewRepository.deleteReviewImg(reviewImgIdDto);

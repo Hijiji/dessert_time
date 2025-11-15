@@ -124,6 +124,7 @@ export class ReviewController {
   async postReviewImg(@UploadedFile() file: Express.Multer.File, @Param() reviewImgSaveDto: ReviewImgSaveDto) {
     return await this.reviewService.postReviewImg(reviewImgSaveDto, file);
   }
+
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '리뷰이미지 하나 삭제' })
