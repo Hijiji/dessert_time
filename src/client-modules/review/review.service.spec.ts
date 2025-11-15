@@ -560,7 +560,7 @@ describe('ReviewService', () => {
   /**
    * 등록된 리뷰 하나 삭제하기
    * 1. 리뷰는 삭제가 아닌 숨김처리
-   * 2. 기존 리뷰의 포인트 삭감처리 - todo
+   * 2. 기존 리뷰의 포인트 삭감처리
    */
   describe('deleteReview', () => {
     it('리뷰 삭제-숨김처리', async () => {

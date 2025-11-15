@@ -3,7 +3,6 @@ import { ReviewRepository } from './review.repository';
 import { ReviewCategoryDto } from './dto/review.category.dto';
 import { LikeDto } from './dto/like.dto';
 import { MemberIdDto } from './dto/member.id.dto';
-import { typeORMConfig } from 'src/config/typeorm/typeorm.config';
 import { ReviewCreateDto } from './dto/review.create.dto';
 import { ReviewIdDto } from './dto/review.id.dto';
 import { ReviewUpdateDto } from './dto/review.update.dto';
@@ -18,8 +17,6 @@ import { ReviewSaveDto } from './dto/review.save.dto';
 import { ReviewMemberIdDto } from './dto/review.member.dto';
 import { AdminPointService } from 'src/backoffice-modules/admin-point/admin-point.service';
 import { UpdateAdminPointDto } from 'src/backoffice-modules/admin-point/model/update-admin-point.dto';
-import { PointType } from 'src/common/enum/point.enum';
-import { Ingredient } from 'src/config/entities/ingredient.entity';
 import { ReviewsRequestDto } from './dto/reviews.request.dto';
 import { ResponseCursorPagination } from 'src/common/pagination/response.cursor.pagination';
 import { FileTransService } from 'src/config/file/filetrans.service';
@@ -40,10 +37,8 @@ export class ReviewService {
    */
   async findReviewOne(reviewMemberIdDto: ReviewMemberIdDto) {
     try {
-      //todo 차단여부 확인하여 접근 가능여부 판단 로직 추가
-      //not in (findBlockedUsers(memberId))
+      //todo testcode 조회자 차단여부 테스트
       const rawReviews = await this.reviewRepository.findReviewOne(reviewMemberIdDto);
-      console.log('rawReviews ::', rawReviews);
       if (rawReviews.length < 1) {
         throw new BadRequestException('존재하지 않는 정보', {
           cause: new Error(),
@@ -145,7 +140,6 @@ export class ReviewService {
       if (randomReviewCount > 0) {
         //사용가능한 카테고리가 없거나 25개보다 적은경우
         const randomCategoryList = await this.reviewRepository.findRandomCategoryList(randomReviewCount, memberIdDto.memberId);
-        console.log('randomCategoryList ::', randomCategoryList);
 
         const mainRandomCategoryList = await Promise.all(
           randomCategoryList.map(async (category) => {
@@ -173,7 +167,6 @@ export class ReviewService {
    */
   @Transactional()
   async findReviewCategoryList(reviewCategoryDto: ReviewCategoryDto) {
-    //todo
     try {
       let reviewCategoryList: any[] = await this.reviewRepository.findReviewCategoryList(reviewCategoryDto);
       const grouped = new Map();
@@ -262,13 +255,16 @@ export class ReviewService {
 
   /**
    * 등록한 리뷰 삭제하기
-   *  todo -- 리뷰 숨김, 포인트 삭감
    * @param reviewIdDto
    * @returns
    */
   @Transactional()
   async deleteReview(reviewIdDto: ReviewIdDto) {
     try {
+      //todo testcode 리뷰 숨김, 포인트 삭감
+      const updateAdminPointDto: UpdateAdminPointDto = { newPoint: 5, pointType: 'A' } as UpdateAdminPointDto;
+      await this.adminPointService.saveRecallPoint('recall', reviewIdDto.memberId, updateAdminPointDto, reviewIdDto.reviewId);
+
       await this.reviewRepository.updateReviewStatus(reviewIdDto);
     } catch (error) {
       throw error;
@@ -318,9 +314,9 @@ export class ReviewService {
     //재료 저장
     const ingredientDto = { ...reviewUpdateDto, reviewId: newReview.reviewId };
     await this.saveIngredient(ingredientDto);
-    //포인트 저장
-    const updateAdminPointDto = new UpdateAdminPointDto(5, PointType.REVIEW);
-    await this.adminPointService.processUpsertPointByReview(reviewUpdateDto.memberId, updateAdminPointDto, reviewUpdateDto.reviewId);
+    //testcode - 포인트 저장
+    const updateAdminPointDto: UpdateAdminPointDto = { newPoint: 5, pointType: 'R' } as UpdateAdminPointDto;
+    await this.adminPointService.saveRecallPoint('save', reviewUpdateDto.memberId, updateAdminPointDto, reviewUpdateDto.reviewId);
 
     return { reviewId: newReview.reviewId };
   }
@@ -333,6 +329,7 @@ export class ReviewService {
    */
   @Transactional()
   async postReviewImg(reviewImgSaveDto: ReviewImgSaveDto, file) {
+    //todo testcode 이미지 저장 - cloud storage 변경건
     const isReviewData = await this.reviewRepository.findReviewId(reviewImgSaveDto.reviewId);
 
     if (!isReviewData) {
@@ -377,7 +374,7 @@ export class ReviewService {
   @Transactional()
   async deleteReviewImg(reviewImgIdDto: ReviewImgIdDto) {
     try {
-      //파일 하나 조회, 클라우드 내. 물리 파일 삭제, 파일정보 삭제
+      //todo testcode 이미지 삭제 - cloud storage 변경건
       const file = await this.reviewRepository.findReviewImg(reviewImgIdDto);
       await this.fileService.delete(file.middlepath, file.path);
       await this.reviewRepository.deleteReviewImg(reviewImgIdDto);
@@ -420,6 +417,7 @@ export class ReviewService {
   @Transactional()
   async getLikedReviewList(reviewsRequestDto: ReviewsRequestDto) {
     try {
+      //todo testcode 조회자 차단여부 테스트
       const likedReviewList: any[] = await this.reviewRepository.findLikedReviewList(reviewsRequestDto);
       const grouped = new Map();
       likedReviewList.forEach((review) => {

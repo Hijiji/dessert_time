@@ -230,6 +230,7 @@ export class MemberService {
   @Transactional()
   async patchMemberImg(file, memberIdDto: MemberIdDto) {
     try {
+      //todo testcode 이미지 저장 - cloud storage 변경건
       const memberData = await this.memberRepository.findMemberImg(memberIdDto.memberId);
       if (memberData) {
         await this.fileService.delete(memberData.middlePath, memberData.path);

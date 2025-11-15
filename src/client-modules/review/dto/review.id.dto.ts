@@ -9,4 +9,12 @@ export class ReviewIdDto {
   })
   @IsNotEmpty()
   readonly reviewId: number;
+
+  @ApiProperty({
+    example: '1',
+    description: '사용자 Id',
+    required: true,
+  })
+  @IsNotEmpty()
+  readonly memberId: number;
 }

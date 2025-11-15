@@ -18,16 +18,16 @@ export class AdminPointService {
    * @param updateAdminPointDto
    * */
   @Transactional()
-  async saveRecallPoint(pointFlag: string, memberId: number, updateAdminPointDto: UpdateAdminPointDto) {
+  async saveRecallPoint(pointFlag: string, memberId: number, updateAdminPointDto: UpdateAdminPointDto, reviewId: number) {
     if (pointFlag === 'save') {
       const savePointDto = updateAdminPointDto.toSavePointDto();
       if (savePointDto.newPoint < 1) throw new Error('적립 포인트는 0보다 더 큰 수만 가능합니다.');
-      return await this.processInsertUpdatePoint(pointFlag, memberId, savePointDto);
+      return await this.processInsertUpdatePoint(pointFlag, memberId, savePointDto, reviewId);
     }
 
     const recallPointDto = updateAdminPointDto.toRecallPointDto();
     if (recallPointDto.newPoint > -1) throw new Error('회수 포인트는 0보다 더 작은 수만 가능합니다.');
-    return await this.processInsertUpdatePoint(pointFlag, memberId, recallPointDto);
+    return await this.processInsertUpdatePoint(pointFlag, memberId, recallPointDto, reviewId);
   }
 
   /**
@@ -38,7 +38,7 @@ export class AdminPointService {
    * @param reviewId
    * */
   @Transactional()
-  public async processInsertUpdatePoint(pointFlag: string, memberId: number, updateAdminPointDto: UpdateAdminPointDto, reviewId: number = null) {
+  public async processInsertUpdatePoint(pointFlag: string, memberId: number, updateAdminPointDto: UpdateAdminPointDto, reviewId: number) {
     // 멤버로 생성된 포인트 정보가 있는지 확인
     const point = await this.adminPointRepository.findOneByMemberId(memberId);
     let pointResult: boolean = false;
@@ -72,12 +72,8 @@ export class AdminPointService {
       console.log('오류발생');
     }
     if (!point) {
-      console.log('updateAdminPointDto ::::::::::::::', updateAdminPointDto);
-
       pointResult = await this.adminPointRepository.insert(memberId, updateAdminPointDto.newPoint);
     } else {
-      console.log('updateAdminPointDto ::::::::::::::', updateAdminPointDto);
-
       const totalPoint = point.totalPoint + updateAdminPointDto.newPoint;
       pointResult = await this.adminPointRepository.update(memberId, totalPoint);
     }

@@ -60,7 +60,7 @@ export class ReviewController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '등록된 내 후기 하나 삭제' })
-  @Delete(':reviewId')
+  @Delete(':reviewId/:memberId')
   async deleteReview(@Param() reviewIdDto: ReviewIdDto) {
     return await this.reviewService.deleteReview(reviewIdDto);
   }
@@ -124,6 +124,7 @@ export class ReviewController {
   async postReviewImg(@UploadedFile() file: Express.Multer.File, @Param() reviewImgSaveDto: ReviewImgSaveDto) {
     return await this.reviewService.postReviewImg(reviewImgSaveDto, file);
   }
+
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '리뷰이미지 하나 삭제' })
