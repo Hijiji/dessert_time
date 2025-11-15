@@ -23,6 +23,7 @@ import { ReviewImgSaveDto } from './dto/reviewimg.save.dto';
 import { ReviewImg } from 'src/config/entities/review.img.entity';
 import { InsertResult } from 'typeorm';
 import { ReviewImgIdDto } from './dto/reviewimg.id.dto';
+import { FileTransService } from 'src/config/file/filetrans.service';
 
 // 트랜잭션 초기화 : 실제 DB 트랜잭션을 걸지 않고 @Transaction이 동작하도록 준비함. 초기화함수.
 initializeTransactionalContext();
@@ -35,12 +36,21 @@ jest.mock('typeorm-transactional', () => ({
 describe('ReviewService', () => {
   let service: ReviewService;
   let repository: jest.Mocked<ReviewRepository>;
+  let fileService: FileTransService;
   let adminPointService: jest.Mocked<AdminPointService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ReviewService,
+        {
+          provide: FileTransService,
+          useValue: {
+            generateFilename: jest.fn(),
+            upload: jest.fn(),
+            delete: jest.fn(),
+          },
+        },
         {
           provide: ReviewRepository,
           useValue: {
