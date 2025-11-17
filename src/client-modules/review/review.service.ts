@@ -371,7 +371,6 @@ export class ReviewService {
   @Transactional()
   async deleteReviewImg(reviewImgIdDto: ReviewImgIdDto) {
     try {
-      //todo testcode 이미지 삭제 - cloud storage 변경건
       const file = await this.reviewRepository.findReviewImg(reviewImgIdDto);
       await this.fileService.delete(file.middlepath, file.path);
       await this.reviewRepository.deleteReviewImg(reviewImgIdDto);

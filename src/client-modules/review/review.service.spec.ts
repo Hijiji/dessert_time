@@ -23,6 +23,7 @@ import { InsertResult } from 'typeorm';
 import { ReviewImgIdDto } from './dto/reviewimg.id.dto';
 import { FileTransService } from 'src/config/file/filetrans.service';
 import dayjs from 'dayjs';
+import { ReviewImg } from 'src/config/entities/review.img.entity';
 
 // 트랜잭션 초기화 : 실제 DB 트랜잭션을 걸지 않고 @Transaction이 동작하도록 준비함. 초기화함수.
 initializeTransactionalContext();
@@ -77,6 +78,7 @@ describe('ReviewService', () => {
             deleteReviewImg: jest.fn(),
             findReviewImgId: jest.fn(),
             saveReviewImg: jest.fn(),
+            findReviewImg: jest.fn(),
           },
         },
         {
@@ -1052,17 +1054,21 @@ describe('ReviewService', () => {
 
   /**
    * 리뷰이미지 하나 삭제 정책
-   * 1. 이미지 삭제시 파일도 같이 삭제
+   * 1. 이미지 삭제시 물리 파일도 같이 삭제
    */
   describe('deleteReviewImg', () => {
     const dto = { reviewImgId: 2 } as ReviewImgIdDto;
     it('이미지 하나 삭제 성공', async () => {
       //Arrange
+      const file: ReviewImg = { middlepath: 'reviewImg/20250103', path: 'test_1234556789.png' } as ReviewImg;
       repository.deleteReviewImg.mockResolvedValue();
+      repository.findReviewImg.mockResolvedValue(file);
       //Act
-      const result = await repository.deleteReviewImg(dto);
+      const result = await service.deleteReviewImg(dto);
       //Assert
       expect(repository.deleteReviewImg).toHaveBeenCalledWith(dto);
+      expect(repository.findReviewImg).toHaveBeenCalledWith(dto);
+      expect(fileService.delete).toHaveBeenCalledWith(file.middlepath, file.path);
     }); //it
   }); //describe
 
