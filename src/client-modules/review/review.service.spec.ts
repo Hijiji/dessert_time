@@ -22,6 +22,7 @@ import { ReviewImgSaveDto } from './dto/reviewimg.save.dto';
 import { InsertResult } from 'typeorm';
 import { ReviewImgIdDto } from './dto/reviewimg.id.dto';
 import { FileTransService } from 'src/config/file/filetrans.service';
+import dayjs from 'dayjs';
 
 // 트랜잭션 초기화 : 실제 DB 트랜잭션을 걸지 않고 @Transaction이 동작하도록 준비함. 초기화함수.
 initializeTransactionalContext();
@@ -34,7 +35,7 @@ jest.mock('typeorm-transactional', () => ({
 describe('ReviewService', () => {
   let service: ReviewService;
   let repository: jest.Mocked<ReviewRepository>;
-  let fileService: FileTransService;
+  let fileService: jest.Mocked<FileTransService>;
   let adminPointService: jest.Mocked<AdminPointService>;
 
   beforeEach(async () => {
@@ -113,6 +114,7 @@ describe('ReviewService', () => {
     //test용 module에서 실제 service인스턴스를 가져옴
     service = module.get<ReviewService>(ReviewService);
     repository = module.get(ReviewRepository);
+    fileService = module.get(FileTransService);
     adminPointService = module.get(AdminPointService);
   });
 
@@ -987,6 +989,14 @@ describe('ReviewService', () => {
       filename: 'imgName.jpg',
     } as Express.Multer.File;
 
+    const mockDate = new Date('2025-01-01T12:00:00Z');
+    beforeEach(() => {
+      jest.useFakeTimers().setSystemTime(mockDate); //mocke date를 시스템시간으로 설정
+    });
+    afterEach(() => {
+      jest.useRealTimers(); //시스템 시간 복구
+    });
+
     it('이미지 저장시, 리뷰아이디 필수 -> 없으면 오류반환', async () => {
       //Arrange
       repository.findReviewId.mockResolvedValue(undefined);
@@ -994,6 +1004,8 @@ describe('ReviewService', () => {
       await expect(service.postReviewImg(dto, file)).rejects.toThrow(BadRequestException);
       expect(repository.findReviewId).toHaveBeenCalledWith(dto.reviewId);
       expect(repository.countReviewImg).not.toHaveBeenCalled();
+      expect(fileService.generateFilename).not.toHaveBeenCalled();
+      expect(fileService.upload).not.toHaveBeenCalled();
       expect(repository.insertReviewImg).not.toHaveBeenCalled();
     }); //it
 
@@ -1005,10 +1017,12 @@ describe('ReviewService', () => {
       await expect(service.postReviewImg(dto, file)).rejects.toThrow(BadRequestException);
       expect(repository.findReviewId).toHaveBeenCalledWith(dto.reviewId);
       expect(repository.countReviewImg).toHaveBeenCalled();
+      expect(fileService.generateFilename).not.toHaveBeenCalled();
+      expect(fileService.upload).not.toHaveBeenCalled();
       expect(repository.insertReviewImg).not.toHaveBeenCalled();
     }); //it
 
-    it('리뷰 이미지 하나 저장', async () => {
+    it('리뷰 이미지 하나 저장 성공case', async () => {
       repository.findReviewId.mockResolvedValue({ reviewId: 1 } as Review);
       repository.countReviewImg.mockResolvedValue(3);
       repository.insertReviewImg.mockResolvedValue({
@@ -1016,6 +1030,11 @@ describe('ReviewService', () => {
         generatedMaps: [{ reviewImgId: 2, path: 'imgName', extention: '.jpg' }],
         raw: { reviewImgId: 2 },
       } as InsertResult);
+      const today = dayjs().format('YYYYMMDD');
+      const middlePath = `reviewImg/${today}`;
+
+      const lastPath = `lastPath_1234567789.png`;
+      fileService.generateFilename.mockResolvedValue(lastPath);
 
       //Act
       const result = await service.postReviewImg(dto, file);
@@ -1024,6 +1043,9 @@ describe('ReviewService', () => {
       expect(result).toEqual({ reviewImgId: 2 });
       expect(repository.findReviewId).toHaveBeenCalledWith(dto.reviewId);
       expect(repository.countReviewImg).toHaveBeenCalledWith(dto);
+      expect(fileService.generateFilename).toHaveBeenCalledWith(file.originalname);
+      expect(fileService.upload).toHaveBeenCalledWith(file, lastPath, middlePath);
+
       expect(repository.insertReviewImg).toHaveBeenCalled();
     }); //it
   }); //describe

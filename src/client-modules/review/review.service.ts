@@ -327,7 +327,6 @@ export class ReviewService {
    */
   @Transactional()
   async postReviewImg(reviewImgSaveDto: ReviewImgSaveDto, file) {
-    //todo testcode 이미지 저장 - cloud storage 변경건
     const isReviewData = await this.reviewRepository.findReviewId(reviewImgSaveDto.reviewId);
 
     if (!isReviewData) {
@@ -347,7 +346,7 @@ export class ReviewService {
     const imgName = path.basename(file.originalname, extention);
 
     file.originalname = Buffer.from(file.originalname, 'ascii').toString('utf8');
-    const lastpath = this.fileService.generateFilename(file.originalname);
+    const lastpath = await this.fileService.generateFilename(file.originalname);
     const today = dayjs().format('YYYYMMDD');
     const middlePath = `reviewImg/${today}`;
 
