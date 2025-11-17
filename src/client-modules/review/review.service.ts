@@ -260,7 +260,6 @@ export class ReviewService {
   @Transactional()
   async deleteReview(reviewIdDto: ReviewIdDto) {
     try {
-      //todo testcode 리뷰 숨김, 포인트 삭감
       const updateAdminPointDto: UpdateAdminPointDto = { newPoint: 5, pointType: 'A' } as UpdateAdminPointDto;
       await this.adminPointService.saveRecallPoint('recall', reviewIdDto.memberId, updateAdminPointDto, reviewIdDto.reviewId);
 

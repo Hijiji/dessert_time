@@ -81,6 +81,7 @@ describe('ReviewService', () => {
         {
           provide: AdminPointService,
           useValue: {
+            saveRecallPoint: jest.fn(),
             processUpsertPointByReview: jest.fn(),
           },
         },
@@ -653,7 +654,7 @@ describe('ReviewService', () => {
 
       repository.updateGenerableReview.mockResolvedValue(review);
       repository.insertReviewIngredient.mockResolvedValue(undefined);
-      adminPointService.processUpsertPointByReview.mockResolvedValue(undefined);
+      adminPointService.saveRecallPoint.mockResolvedValue(undefined);
     });
     it('리뷰 저장, 재료저장, 포인트 저장 호출되야함', async () => {
       //Act
@@ -661,7 +662,7 @@ describe('ReviewService', () => {
       //Assert
       expect(repository.updateGenerableReview).toHaveBeenCalledWith(dto);
       expect(repository.insertReviewIngredient).toHaveBeenCalledWith(expectedSaveData);
-      expect(adminPointService.processUpsertPointByReview).toHaveBeenCalled();
+      expect(adminPointService.saveRecallPoint).toHaveBeenCalled();
       expect(result).toEqual({ reviewId: 1 });
     });
     it('재료가 비어있는경우 insertReviewIngredient 호출하지 않음', async () => {
@@ -672,7 +673,7 @@ describe('ReviewService', () => {
       //Assert
       expect(repository.updateGenerableReview).toHaveBeenCalledWith(newDto);
       expect(repository.insertReviewIngredient).not.toHaveBeenCalled();
-      expect(adminPointService.processUpsertPointByReview).toHaveBeenCalled();
+      expect(adminPointService.saveRecallPoint).toHaveBeenCalled();
       expect(result).toEqual({ reviewId: 1 });
     });
   });
