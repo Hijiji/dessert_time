@@ -413,7 +413,6 @@ export class ReviewService {
   @Transactional()
   async getLikedReviewList(reviewsRequestDto: ReviewsRequestDto) {
     try {
-      //todo testcode 조회자 차단여부 테스트
       const likedReviewList: any[] = await this.reviewRepository.findLikedReviewList(reviewsRequestDto);
       const grouped = new Map();
       likedReviewList.forEach((review) => {
