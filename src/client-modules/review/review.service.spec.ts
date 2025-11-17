@@ -17,10 +17,8 @@ import { AdminPointRepository } from 'src/backoffice-modules/admin-point/admin-p
 import { AdminPointHistoryService } from 'src/backoffice-modules/admin-point-history/admin-point-history.service';
 import { AdminPointHistoryRepository } from 'src/backoffice-modules/admin-point-history/admin-point-history.repository';
 import { ReviewUpdateDto } from './dto/review.update.dto';
-import { ReviewStatus } from 'src/common/enum/review.enum';
 import { ReviewsRequestDto } from './dto/reviews.request.dto';
 import { ReviewImgSaveDto } from './dto/reviewimg.save.dto';
-import { ReviewImg } from 'src/config/entities/review.img.entity';
 import { InsertResult } from 'typeorm';
 import { ReviewImgIdDto } from './dto/reviewimg.id.dto';
 import { FileTransService } from 'src/config/file/filetrans.service';
@@ -83,7 +81,7 @@ describe('ReviewService', () => {
         {
           provide: AdminPointService,
           useValue: {
-            processUpsertPointByReview: jest.fn(), // ReviewService 안에서 실제 호출하는 메소드
+            processUpsertPointByReview: jest.fn(),
           },
         },
         {
@@ -563,13 +561,20 @@ describe('ReviewService', () => {
    * 2. 기존 리뷰의 포인트 삭감처리
    */
   describe('deleteReview', () => {
-    it('리뷰 삭제-숨김처리', async () => {
-      //Arrange
-      const dto = { reviewId: 1 } as ReviewIdDto;
+    //Arrange
+    const dto = { reviewId: 1 } as ReviewIdDto;
+    it('리뷰 삭제-숨김처리 정상동작', async () => {
       //Act
       const result = await service.deleteReview(dto);
       //Assert
       expect(repository.updateReviewStatus).toHaveBeenCalledWith(dto);
+    });
+
+    it('삭제시 포인트 삭감 서비스로직 실행여부 확인', async () => {
+      //Act
+      const result = await service.deleteReview(dto);
+      //Assert
+      expect(result).toHaveBeenCalled();
     });
   });
 

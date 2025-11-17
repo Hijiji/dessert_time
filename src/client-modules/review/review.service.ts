@@ -37,7 +37,6 @@ export class ReviewService {
    */
   async findReviewOne(reviewMemberIdDto: ReviewMemberIdDto) {
     try {
-      //todo testcode 조회자 차단여부 테스트
       const rawReviews = await this.reviewRepository.findReviewOne(reviewMemberIdDto);
       if (rawReviews.length < 1) {
         throw new BadRequestException('존재하지 않는 정보', {
