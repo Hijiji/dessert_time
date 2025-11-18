@@ -24,6 +24,7 @@ import { ReviewImgIdDto } from './dto/reviewimg.id.dto';
 import { FileTransService } from 'src/config/file/filetrans.service';
 import dayjs from 'dayjs';
 import { ReviewImg } from 'src/config/entities/review.img.entity';
+import { UpdateAdminPointDto } from 'src/backoffice-modules/admin-point/model/update-admin-point.dto';
 
 // 트랜잭션 초기화 : 실제 DB 트랜잭션을 걸지 않고 @Transaction이 동작하도록 준비함. 초기화함수.
 initializeTransactionalContext();
@@ -567,7 +568,9 @@ describe('ReviewService', () => {
    */
   describe('deleteReview', () => {
     //Arrange
-    const dto = { reviewId: 1 } as ReviewIdDto;
+    const dto = { reviewId: 1, memberId: 2 } as ReviewIdDto;
+    const updateAdminPointDto = { newPoint: 5, pointType: 'A' } as UpdateAdminPointDto;
+
     it('리뷰 삭제-숨김처리 정상동작', async () => {
       //Act
       const result = await service.deleteReview(dto);
@@ -579,7 +582,7 @@ describe('ReviewService', () => {
       //Act
       const result = await service.deleteReview(dto);
       //Assert
-      expect(result).toHaveBeenCalled();
+      expect(adminPointService.saveRecallPoint).toHaveBeenCalledWith('recall', dto.memberId, updateAdminPointDto, dto.reviewId);
     });
   });
 
