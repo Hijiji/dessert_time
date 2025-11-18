@@ -136,7 +136,7 @@ describe('ReviewService', () => {
       //findMemberInterestList 함수가 한번도 호출되지 않았는지 확인.
       expect(repository.findMemberInterestList).not.toHaveBeenCalled();
       //findRandomCategoryList 함수가 25라는 인자로 호출되었는지 확인
-      expect(repository.findRandomCategoryList).toHaveBeenCalledWith(25);
+      expect(repository.findRandomCategoryList).toHaveBeenCalledWith(25, dto.memberId);
       //service 호출 결과와 예상결과가 일치하는지 확인
       expect(result).toEqual([{ dessertCategoryId: 1, dessertName: '쿠키', categoryReviewImgList: [{ reviewId: 10 }] }]);
     });
