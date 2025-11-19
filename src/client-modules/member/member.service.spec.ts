@@ -4,6 +4,9 @@ import { MemberRepository } from './member.repository';
 import { AuthService } from 'src/config/auth/auth.service';
 import { FileTransService } from 'src/config/file/filetrans.service';
 import { initializeTransactionalContext } from 'typeorm-transactional-cls-hooked';
+import { Member } from 'src/config/entities/member.entity';
+import { addAbortListener } from 'events';
+import { SignInDto } from './dto/signin.dto';
 
 initializeTransactionalContext();
 jest.mock('typeorm-transactional', () => ({
@@ -21,7 +24,16 @@ describe('MemberService', () => {
         MemberService,
         {
           provide: MemberRepository,
-          useValue: {},
+          useValue: {
+            findEmailOne: jest.fn(),
+            findSnsIdOne: jest.fn(),
+            insertMember: jest.fn(),
+            updateMemberNickname: jest.fn(),
+            insertPickCategoryList: jest.fn(),
+            findSnsId: jest.fn(),
+            memberValidate: jest.fn(),
+            //:jest.fn(),
+          },
         },
         {
           provide: AuthService,
@@ -50,7 +62,20 @@ describe('MemberService', () => {
    *    4. snsId 반환
    */
   describe('memberSignIn', () => {
+    let dto: SignInDto = { memberEmail: 'aa@abc.com', snsId: 'testSnsId' } as SignInDto;
     it('회원가입 정상동작 확인', async () => {});
-    it('이미 존재하는 회원, Exception 발생', async () => {});
+    it('이미 존재하는 회원, Exception 발생', async () => {
+      //Arrange
+      const member: Member = { memberId: 1, memberEmail: 'aa@abc.com' } as Member;
+      repository.findEmailOne.mockResolvedValue(member);
+      repository.findSnsIdOne.mockResolvedValue(member);
+      //Act & Assert
+      await expect(service.memberSignIn(dto)).rejects.toThrow();
+      expect(repository.findEmailOne).toHaveBeenCalledWith(dto.memberEmail);
+      expect(repository.findSnsIdOne).toHaveBeenCalledWith(dto.snsId);
+      expect(repository.insertMember).not.toHaveBeenCalled();
+      expect(repository.updateMemberNickname).not.toHaveBeenCalled();
+      expect(repository.insertPickCategoryList).not.toHaveBeenCalled();
+    });
   });
 });
