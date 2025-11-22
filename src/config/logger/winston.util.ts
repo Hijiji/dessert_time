@@ -1,7 +1,6 @@
 import * as winston from 'winston';
-import * as winstonDaily from 'winston-daily-rotate-file';
+import DailyRotateFile from 'winston-daily-rotate-file';
 import { WinstonModule, utilities } from 'nest-winston';
-
 
 const dailyOption = (level: string) => {
   return {
@@ -26,8 +25,8 @@ export const winstonLogger = WinstonModule.createLogger({
         }),
       ),
     }),
-    new winstonDaily(dailyOption('error')),
-    new winstonDaily(dailyOption('warn')),
-    new winstonDaily(dailyOption('info')),
+    new DailyRotateFile(dailyOption('error')),
+    new DailyRotateFile(dailyOption('warn')),
+    new DailyRotateFile(dailyOption('info')),
   ],
 });
