@@ -17,13 +17,14 @@ import { AdminPointRepository } from 'src/backoffice-modules/admin-point/admin-p
 import { AdminPointHistoryService } from 'src/backoffice-modules/admin-point-history/admin-point-history.service';
 import { AdminPointHistoryRepository } from 'src/backoffice-modules/admin-point-history/admin-point-history.repository';
 import { ReviewUpdateDto } from './dto/review.update.dto';
-import { ReviewStatus } from 'src/common/enum/review.enum';
 import { ReviewsRequestDto } from './dto/reviews.request.dto';
 import { ReviewImgSaveDto } from './dto/reviewimg.save.dto';
-import { ReviewImg } from 'src/config/entities/review.img.entity';
 import { InsertResult } from 'typeorm';
 import { ReviewImgIdDto } from './dto/reviewimg.id.dto';
 import { FileTransService } from 'src/config/file/filetrans.service';
+import dayjs from 'dayjs';
+import { ReviewImg } from 'src/config/entities/review.img.entity';
+import { UpdateAdminPointDto } from 'src/backoffice-modules/admin-point/model/update-admin-point.dto';
 
 // 트랜잭션 초기화 : 실제 DB 트랜잭션을 걸지 않고 @Transaction이 동작하도록 준비함. 초기화함수.
 initializeTransactionalContext();
@@ -36,7 +37,7 @@ jest.mock('typeorm-transactional', () => ({
 describe('ReviewService', () => {
   let service: ReviewService;
   let repository: jest.Mocked<ReviewRepository>;
-  let fileService: FileTransService;
+  let fileService: jest.Mocked<FileTransService>;
   let adminPointService: jest.Mocked<AdminPointService>;
 
   beforeEach(async () => {
@@ -78,12 +79,14 @@ describe('ReviewService', () => {
             deleteReviewImg: jest.fn(),
             findReviewImgId: jest.fn(),
             saveReviewImg: jest.fn(),
+            findReviewImg: jest.fn(),
           },
         },
         {
           provide: AdminPointService,
           useValue: {
-            processUpsertPointByReview: jest.fn(), // ReviewService 안에서 실제 호출하는 메소드
+            saveRecallPoint: jest.fn(),
+            processUpsertPointByReview: jest.fn(),
           },
         },
         {
@@ -114,6 +117,7 @@ describe('ReviewService', () => {
     //test용 module에서 실제 service인스턴스를 가져옴
     service = module.get<ReviewService>(ReviewService);
     repository = module.get(ReviewRepository);
+    fileService = module.get(FileTransService);
     adminPointService = module.get(AdminPointService);
   });
 
@@ -132,7 +136,7 @@ describe('ReviewService', () => {
       //findMemberInterestList 함수가 한번도 호출되지 않았는지 확인.
       expect(repository.findMemberInterestList).not.toHaveBeenCalled();
       //findRandomCategoryList 함수가 25라는 인자로 호출되었는지 확인
-      expect(repository.findRandomCategoryList).toHaveBeenCalledWith(25);
+      expect(repository.findRandomCategoryList).toHaveBeenCalledWith(25, dto.memberId);
       //service 호출 결과와 예상결과가 일치하는지 확인
       expect(result).toEqual([{ dessertCategoryId: 1, dessertName: '쿠키', categoryReviewImgList: [{ reviewId: 10 }] }]);
     });
@@ -563,13 +567,22 @@ describe('ReviewService', () => {
    * 2. 기존 리뷰의 포인트 삭감처리
    */
   describe('deleteReview', () => {
-    it('리뷰 삭제-숨김처리', async () => {
-      //Arrange
-      const dto = { reviewId: 1 } as ReviewIdDto;
+    //Arrange
+    const dto = { reviewId: 1, memberId: 2 } as ReviewIdDto;
+    const updateAdminPointDto = { newPoint: 5, pointType: 'A' } as UpdateAdminPointDto;
+
+    it('리뷰 삭제-숨김처리 정상동작', async () => {
       //Act
       const result = await service.deleteReview(dto);
       //Assert
       expect(repository.updateReviewStatus).toHaveBeenCalledWith(dto);
+    });
+
+    it('삭제시 포인트 삭감 서비스로직 실행여부 확인', async () => {
+      //Act
+      const result = await service.deleteReview(dto);
+      //Assert
+      expect(adminPointService.saveRecallPoint).toHaveBeenCalledWith('recall', dto.memberId, updateAdminPointDto, dto.reviewId);
     });
   });
 
@@ -648,7 +661,7 @@ describe('ReviewService', () => {
 
       repository.updateGenerableReview.mockResolvedValue(review);
       repository.insertReviewIngredient.mockResolvedValue(undefined);
-      adminPointService.processUpsertPointByReview.mockResolvedValue(undefined);
+      adminPointService.saveRecallPoint.mockResolvedValue(undefined);
     });
     it('리뷰 저장, 재료저장, 포인트 저장 호출되야함', async () => {
       //Act
@@ -656,7 +669,7 @@ describe('ReviewService', () => {
       //Assert
       expect(repository.updateGenerableReview).toHaveBeenCalledWith(dto);
       expect(repository.insertReviewIngredient).toHaveBeenCalledWith(expectedSaveData);
-      expect(adminPointService.processUpsertPointByReview).toHaveBeenCalled();
+      expect(adminPointService.saveRecallPoint).toHaveBeenCalled();
       expect(result).toEqual({ reviewId: 1 });
     });
     it('재료가 비어있는경우 insertReviewIngredient 호출하지 않음', async () => {
@@ -667,7 +680,7 @@ describe('ReviewService', () => {
       //Assert
       expect(repository.updateGenerableReview).toHaveBeenCalledWith(newDto);
       expect(repository.insertReviewIngredient).not.toHaveBeenCalled();
-      expect(adminPointService.processUpsertPointByReview).toHaveBeenCalled();
+      expect(adminPointService.saveRecallPoint).toHaveBeenCalled();
       expect(result).toEqual({ reviewId: 1 });
     });
   });
@@ -981,6 +994,14 @@ describe('ReviewService', () => {
       filename: 'imgName.jpg',
     } as Express.Multer.File;
 
+    const mockDate = new Date('2025-01-01T12:00:00Z');
+    beforeEach(() => {
+      jest.useFakeTimers().setSystemTime(mockDate); //mocke date를 시스템시간으로 설정
+    });
+    afterEach(() => {
+      jest.useRealTimers(); //시스템 시간 복구
+    });
+
     it('이미지 저장시, 리뷰아이디 필수 -> 없으면 오류반환', async () => {
       //Arrange
       repository.findReviewId.mockResolvedValue(undefined);
@@ -988,6 +1009,8 @@ describe('ReviewService', () => {
       await expect(service.postReviewImg(dto, file)).rejects.toThrow(BadRequestException);
       expect(repository.findReviewId).toHaveBeenCalledWith(dto.reviewId);
       expect(repository.countReviewImg).not.toHaveBeenCalled();
+      expect(fileService.generateFilename).not.toHaveBeenCalled();
+      expect(fileService.upload).not.toHaveBeenCalled();
       expect(repository.insertReviewImg).not.toHaveBeenCalled();
     }); //it
 
@@ -999,10 +1022,12 @@ describe('ReviewService', () => {
       await expect(service.postReviewImg(dto, file)).rejects.toThrow(BadRequestException);
       expect(repository.findReviewId).toHaveBeenCalledWith(dto.reviewId);
       expect(repository.countReviewImg).toHaveBeenCalled();
+      expect(fileService.generateFilename).not.toHaveBeenCalled();
+      expect(fileService.upload).not.toHaveBeenCalled();
       expect(repository.insertReviewImg).not.toHaveBeenCalled();
     }); //it
 
-    it('리뷰 이미지 하나 저장', async () => {
+    it('리뷰 이미지 하나 저장 성공case', async () => {
       repository.findReviewId.mockResolvedValue({ reviewId: 1 } as Review);
       repository.countReviewImg.mockResolvedValue(3);
       repository.insertReviewImg.mockResolvedValue({
@@ -1010,6 +1035,11 @@ describe('ReviewService', () => {
         generatedMaps: [{ reviewImgId: 2, path: 'imgName', extention: '.jpg' }],
         raw: { reviewImgId: 2 },
       } as InsertResult);
+      const today = dayjs().format('YYYYMMDD');
+      const middlePath = `reviewImg/${today}`;
+
+      const lastPath = `lastPath_1234567789.png`;
+      fileService.generateFilename.mockResolvedValue(lastPath);
 
       //Act
       const result = await service.postReviewImg(dto, file);
@@ -1018,23 +1048,30 @@ describe('ReviewService', () => {
       expect(result).toEqual({ reviewImgId: 2 });
       expect(repository.findReviewId).toHaveBeenCalledWith(dto.reviewId);
       expect(repository.countReviewImg).toHaveBeenCalledWith(dto);
+      expect(fileService.generateFilename).toHaveBeenCalledWith(file.originalname);
+      expect(fileService.upload).toHaveBeenCalledWith(file, lastPath, middlePath);
+
       expect(repository.insertReviewImg).toHaveBeenCalled();
     }); //it
   }); //describe
 
   /**
    * 리뷰이미지 하나 삭제 정책
-   * 1. 이미지 삭제시 파일도 같이 삭제
+   * 1. 이미지 삭제시 물리 파일도 같이 삭제
    */
   describe('deleteReviewImg', () => {
     const dto = { reviewImgId: 2 } as ReviewImgIdDto;
     it('이미지 하나 삭제 성공', async () => {
       //Arrange
+      const file: ReviewImg = { middlepath: 'reviewImg/20250103', path: 'test_1234556789.png' } as ReviewImg;
       repository.deleteReviewImg.mockResolvedValue();
+      repository.findReviewImg.mockResolvedValue(file);
       //Act
-      const result = await repository.deleteReviewImg(dto);
+      const result = await service.deleteReviewImg(dto);
       //Assert
       expect(repository.deleteReviewImg).toHaveBeenCalledWith(dto);
+      expect(repository.findReviewImg).toHaveBeenCalledWith(dto);
+      expect(fileService.delete).toHaveBeenCalledWith(file.middlepath, file.path);
     }); //it
   }); //describe
 

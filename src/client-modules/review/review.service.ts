@@ -21,6 +21,7 @@ import { ReviewsRequestDto } from './dto/reviews.request.dto';
 import { ResponseCursorPagination } from 'src/common/pagination/response.cursor.pagination';
 import { FileTransService } from 'src/config/file/filetrans.service';
 import dayjs from 'dayjs';
+import { PointType } from 'src/common/enum/point.enum';
 
 @Injectable()
 export class ReviewService {
@@ -37,7 +38,6 @@ export class ReviewService {
    */
   async findReviewOne(reviewMemberIdDto: ReviewMemberIdDto) {
     try {
-      //todo testcode 조회자 차단여부 테스트
       const rawReviews = await this.reviewRepository.findReviewOne(reviewMemberIdDto);
       if (rawReviews.length < 1) {
         throw new BadRequestException('존재하지 않는 정보', {
@@ -261,8 +261,8 @@ export class ReviewService {
   @Transactional()
   async deleteReview(reviewIdDto: ReviewIdDto) {
     try {
-      //todo testcode 리뷰 숨김, 포인트 삭감
-      const updateAdminPointDto: UpdateAdminPointDto = { newPoint: 5, pointType: 'A' } as UpdateAdminPointDto;
+      const updateAdminPointDto = new UpdateAdminPointDto(5, 'A' as PointType);
+
       await this.adminPointService.saveRecallPoint('recall', reviewIdDto.memberId, updateAdminPointDto, reviewIdDto.reviewId);
 
       await this.reviewRepository.updateReviewStatus(reviewIdDto);
@@ -315,7 +315,8 @@ export class ReviewService {
     const ingredientDto = { ...reviewUpdateDto, reviewId: newReview.reviewId };
     await this.saveIngredient(ingredientDto);
     //testcode - 포인트 저장
-    const updateAdminPointDto: UpdateAdminPointDto = { newPoint: 5, pointType: 'R' } as UpdateAdminPointDto;
+    //    const updateAdminPointDto: UpdateAdminPointDto = { newPoint: 5, pointType: 'R' } as UpdateAdminPointDto;
+    const updateAdminPointDto = new UpdateAdminPointDto(5, 'R' as PointType);
     await this.adminPointService.saveRecallPoint('save', reviewUpdateDto.memberId, updateAdminPointDto, reviewUpdateDto.reviewId);
 
     return { reviewId: newReview.reviewId };
@@ -329,7 +330,6 @@ export class ReviewService {
    */
   @Transactional()
   async postReviewImg(reviewImgSaveDto: ReviewImgSaveDto, file) {
-    //todo testcode 이미지 저장 - cloud storage 변경건
     const isReviewData = await this.reviewRepository.findReviewId(reviewImgSaveDto.reviewId);
 
     if (!isReviewData) {
@@ -349,7 +349,7 @@ export class ReviewService {
     const imgName = path.basename(file.originalname, extention);
 
     file.originalname = Buffer.from(file.originalname, 'ascii').toString('utf8');
-    const lastpath = this.fileService.generateFilename(file.originalname);
+    const lastpath = await this.fileService.generateFilename(file.originalname);
     const today = dayjs().format('YYYYMMDD');
     const middlePath = `reviewImg/${today}`;
 
@@ -374,7 +374,6 @@ export class ReviewService {
   @Transactional()
   async deleteReviewImg(reviewImgIdDto: ReviewImgIdDto) {
     try {
-      //todo testcode 이미지 삭제 - cloud storage 변경건
       const file = await this.reviewRepository.findReviewImg(reviewImgIdDto);
       await this.fileService.delete(file.middlepath, file.path);
       await this.reviewRepository.deleteReviewImg(reviewImgIdDto);
@@ -417,7 +416,6 @@ export class ReviewService {
   @Transactional()
   async getLikedReviewList(reviewsRequestDto: ReviewsRequestDto) {
     try {
-      //todo testcode 조회자 차단여부 테스트
       const likedReviewList: any[] = await this.reviewRepository.findLikedReviewList(reviewsRequestDto);
       const grouped = new Map();
       likedReviewList.forEach((review) => {
