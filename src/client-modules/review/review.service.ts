@@ -21,6 +21,7 @@ import { ReviewsRequestDto } from './dto/reviews.request.dto';
 import { ResponseCursorPagination } from 'src/common/pagination/response.cursor.pagination';
 import { FileTransService } from 'src/config/file/filetrans.service';
 import dayjs from 'dayjs';
+import { PointType } from 'src/common/enum/point.enum';
 
 @Injectable()
 export class ReviewService {
@@ -260,7 +261,8 @@ export class ReviewService {
   @Transactional()
   async deleteReview(reviewIdDto: ReviewIdDto) {
     try {
-      const updateAdminPointDto: UpdateAdminPointDto = { newPoint: 5, pointType: 'A' } as UpdateAdminPointDto;
+      const updateAdminPointDto = new UpdateAdminPointDto(5, 'A' as PointType);
+
       await this.adminPointService.saveRecallPoint('recall', reviewIdDto.memberId, updateAdminPointDto, reviewIdDto.reviewId);
 
       await this.reviewRepository.updateReviewStatus(reviewIdDto);
@@ -313,7 +315,8 @@ export class ReviewService {
     const ingredientDto = { ...reviewUpdateDto, reviewId: newReview.reviewId };
     await this.saveIngredient(ingredientDto);
     //testcode - 포인트 저장
-    const updateAdminPointDto: UpdateAdminPointDto = { newPoint: 5, pointType: 'R' } as UpdateAdminPointDto;
+    //    const updateAdminPointDto: UpdateAdminPointDto = { newPoint: 5, pointType: 'R' } as UpdateAdminPointDto;
+    const updateAdminPointDto = new UpdateAdminPointDto(5, 'R' as PointType);
     await this.adminPointService.saveRecallPoint('save', reviewUpdateDto.memberId, updateAdminPointDto, reviewUpdateDto.reviewId);
 
     return { reviewId: newReview.reviewId };
