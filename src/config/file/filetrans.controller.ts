@@ -33,7 +33,7 @@ export class FileTransController {
     return { url };
   }
 
-  @Get(':filename')
+  @Get(':middlePath/:path')
   @ApiOperation({ summary: '파일 다운로드', description: '클라우드 스토리지에서 파일을 다운로드합니다.' })
   @ApiParam({ name: 'middlePath', description: '다운로드할 파일 미들패스' })
   @ApiParam({ name: 'path', description: '다운로드할 파일 path(uuid추가된 이미지명)' })
@@ -41,7 +41,7 @@ export class FileTransController {
     const file = await this.fileService.download(path, middlePath);
     res.set({
       'Content-Type': 'application/octet-stream',
-      'Content-Disposition': `attachment; filename="${path}"`,
+      'Content-Disposition': `attachment; filename="${middlePath}/${path}"`,
     });
     res.send(file);
   }
