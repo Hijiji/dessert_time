@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, Param, Res, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Param, Res, UploadedFile, UploadedFiles, UseInterceptors, Query } from '@nestjs/common';
 import { Response } from 'express';
 
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
@@ -33,11 +33,13 @@ export class FileTransController {
     return { url };
   }
 
+<<<<<<< Updated upstream
   @Get(':filename')
+=======
+  @Get()
+>>>>>>> Stashed changes
   @ApiOperation({ summary: '파일 다운로드', description: '클라우드 스토리지에서 파일을 다운로드합니다.' })
-  @ApiParam({ name: 'middlePath', description: '다운로드할 파일 미들패스' })
-  @ApiParam({ name: 'path', description: '다운로드할 파일 path(uuid추가된 이미지명)' })
-  async cloudDownloadFile(@Param('middlePath') middlePath: string, @Param('path') path: string, @Res() res: Response) {
+  async cloudDownloadFile(@Query('middleath') middlePath: string, @Query('path') path: string, @Res() res: Response) {
     const file = await this.fileService.download(path, middlePath);
     res.set({
       'Content-Type': 'application/octet-stream',
