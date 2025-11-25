@@ -33,7 +33,7 @@ export class FileTransController {
     return { url };
   }
 
-  @Get(':middlePath/:path')
+  @Get()
   @ApiOperation({ summary: '파일 다운로드', description: '클라우드 스토리지에서 파일을 다운로드합니다.' })
   async cloudDownloadFile(@Query('middleath') middlePath: string, @Query('path') path: string, @Res() res: Response) {
     const file = await this.fileService.download(path, middlePath);
