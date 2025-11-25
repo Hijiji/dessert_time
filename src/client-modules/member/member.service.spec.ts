@@ -7,6 +7,7 @@ import { initializeTransactionalContext } from 'typeorm-transactional-cls-hooked
 import { Member } from 'src/config/entities/member.entity';
 import { addAbortListener } from 'events';
 import { SignInDto } from './dto/signin.dto';
+import { InsertResult } from 'typeorm';
 
 initializeTransactionalContext();
 jest.mock('typeorm-transactional', () => ({
@@ -62,8 +63,42 @@ describe('MemberService', () => {
    *    4. snsId 반환
    */
   describe('memberSignIn', () => {
-    let dto: SignInDto = { memberEmail: 'aa@abc.com', snsId: 'testSnsId' } as SignInDto;
-    it('회원가입 정상동작 확인', async () => {});
+    let dto: SignInDto = {
+      memberEmail: 'aa@abc.com',
+      snsId: 'testSnsId',
+      memberPickCategory1: 1,
+      memberPickCategory2: 2,
+    } as SignInDto;
+
+    it('회원가입 정상동작 확인', async () => {
+      //Arrange
+      const newMember: InsertResult = {
+        identifiers: [{ memberId: 2 }],
+        generatedMaps: [{ memberId: 2 }],
+        raw: { memberId: 2 },
+      } as InsertResult;
+      const newMemberId = newMember.identifiers[0].memberId;
+      const nickName = `${newMemberId}번째 달콤한 디저트`;
+
+      repository.findEmailOne.mockResolvedValue(null);
+      repository.findSnsIdOne.mockResolvedValue(null);
+      repository.insertMember.mockResolvedValue(newMember);
+      repository.findSnsId.mockResolvedValue({ snsId: 'testSnsId' } as Member);
+
+      //Act
+      const result = await service.memberSignIn(dto);
+
+      //Assert
+      expect(repository.findEmailOne).toHaveBeenCalledWith(dto.memberEmail);
+      expect(repository.findSnsIdOne).toHaveBeenCalledWith(dto.snsId);
+      expect(repository.insertMember).toHaveBeenCalledWith(dto);
+      expect(repository.updateMemberNickname).toHaveBeenCalledWith(newMemberId, nickName);
+      expect(repository.insertPickCategoryList).toHaveBeenCalled();
+      expect(repository.findSnsId).toHaveBeenCalledWith(newMemberId);
+      expect(repository.findSnsId).toHaveBeenCalledWith(newMemberId);
+      expect(result).toEqual({ snsId: 'testSnsId' } as Member);
+    });
+
     it('이미 존재하는 회원, Exception 발생', async () => {
       //Arrange
       const member: Member = { memberId: 1, memberEmail: 'aa@abc.com' } as Member;
