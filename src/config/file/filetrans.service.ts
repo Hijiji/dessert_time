@@ -44,7 +44,7 @@ export class FileTransService {
     const request = {
       namespaceName: this.namespaceName,
       bucketName: this.bucketName,
-      objectName: file.originalname,
+      objectName: `${middlePath}/${fileName}`, //file.originalname,
       putObjectBody: file.buffer,
       contentLength: file.size,
     };

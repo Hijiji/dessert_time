@@ -359,7 +359,7 @@ export class ReviewService {
       middlePath,
       path: lastpath,
     };
-
+    console.log('fileData :::::::::::', fileData);
     //클라우드 스토리지에 파일 업로드
     await this.fileService.upload(file, lastpath, middlePath);
 
