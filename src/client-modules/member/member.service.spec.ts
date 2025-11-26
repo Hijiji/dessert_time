@@ -8,6 +8,7 @@ import { Member } from 'src/config/entities/member.entity';
 import { addAbortListener } from 'events';
 import { SignInDto } from './dto/signin.dto';
 import { InsertResult } from 'typeorm';
+import { UserValidationDto } from './dto/login.dto';
 
 initializeTransactionalContext();
 jest.mock('typeorm-transactional', () => ({
@@ -38,7 +39,7 @@ describe('MemberService', () => {
         },
         {
           provide: AuthService,
-          useValue: {},
+          useValue: { jwtLogIn: jest.fn() },
         },
         {
           provide: FileTransService,
@@ -111,6 +112,28 @@ describe('MemberService', () => {
       expect(repository.insertMember).not.toHaveBeenCalled();
       expect(repository.updateMemberNickname).not.toHaveBeenCalled();
       expect(repository.insertPickCategoryList).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * 사용자 유효성검사 정책
+   * 1. 사용자 유효성검사 성공시 사용자ID, nickname, token 반환
+   * 2. 등록되지 않은 사용자일 경우 BadRequestException - '가입되지 않은 정보' 반환
+   */
+  describe('memberValidate', () => {
+    const dto: UserValidationDto = { snsId: 'testSnsId' };
+    it('사용자 유효성검사 성공case', async () => {
+      //Arrange
+      const memberData: Member = { snsId: 'testSnsId', isUsable: true, nickName: 'nickName', memberId: 1, memberName: 'test' } as Member;
+      const token = { token: '1q2w3e4r' };
+      repository.memberValidate.mockResolvedValue(memberData);
+      authService.jwtLogIn.mockResolvedValue(token);
+      //Act
+      const result = await service.memberValidate(dto);
+      //Assert
+      expect(repository.memberValidate).toHaveBeenCalledWith(dto);
+      expect(authService.jwtLogIn).toHaveBeenCalledWith(memberData);
+      expect(result).toEqual({ memberId: memberData.memberId, nickName: memberData.nickName, token: token.token });
     });
   });
 });
