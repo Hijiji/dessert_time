@@ -19,6 +19,7 @@ import { AuthService } from 'src/config/auth/auth.service';
 import * as path from 'path';
 import { FileTransService } from 'src/config/file/filetrans.service';
 import dayjs from 'dayjs';
+import { Point } from 'src/config/entities/point.entity';
 
 @Injectable()
 export class MemberService {
@@ -111,10 +112,9 @@ export class MemberService {
   async myPageOverview(memberIdDto: MemberIdDto) {
     try {
       const member = await this.memberRepository.findMemberProfile(memberIdDto);
-      console.log('member ::', member);
-      const usersReviewCount = await this.memberRepository.countReview(memberIdDto);
-      const usersPoint = await this.memberRepository.findTotalPointOne(memberIdDto);
-      const usersTotalPoint = usersPoint[0] ? usersPoint[0].totalPoint : 0;
+      const usersReviewCount: number = await this.memberRepository.countReview(memberIdDto);
+      const usersPoint: Point = await this.memberRepository.findTotalPointOne(memberIdDto);
+      const usersTotalPoint: number = usersPoint ? usersPoint.totalPoint : 0;
       return {
         nickName: member.nickName,
         profileImgId: member.profileImgId,
@@ -360,7 +360,7 @@ export class MemberService {
       const thisMonthPointData = await this.memberRepository.findThisMonthPoint(memberIdDto);
       const totalPointData = await this.memberRepository.findTotalPointOne(memberIdDto);
       const thisMonthPoint = !thisMonthPointData.totalPoint ? 0 : thisMonthPointData.totalPoint;
-      const totalPoint = !totalPointData[0] ? 0 : !totalPointData[0].totalPoint ? 0 : totalPointData[0].totalPoint;
+      const totalPoint = !totalPointData ? 0 : !totalPointData.totalPoint ? 0 : totalPointData.totalPoint;
       const result = {
         thisMonthPoint,
         totalPoint,

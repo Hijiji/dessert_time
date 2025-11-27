@@ -10,6 +10,8 @@ import { SignInDto } from './dto/signin.dto';
 import { InsertResult } from 'typeorm';
 import { UserValidationDto } from './dto/login.dto';
 import { BadRequestException } from '@nestjs/common';
+import { MemberIdDto } from './dto/member.id';
+import { Point } from 'src/config/entities/point.entity';
 
 initializeTransactionalContext();
 jest.mock('typeorm-transactional', () => ({
@@ -35,7 +37,13 @@ describe('MemberService', () => {
             insertPickCategoryList: jest.fn(),
             findSnsId: jest.fn(),
             memberValidate: jest.fn(),
-            //:jest.fn(),
+            findMemberProfile: jest.fn(),
+            countReview: jest.fn(),
+            findTotalPointOne: jest.fn(),
+            findMemberOne: jest.fn(),
+            // :jest.fn(),
+            // :jest.fn(),
+            // :jest.fn(),
           },
         },
         {
@@ -143,6 +151,104 @@ describe('MemberService', () => {
       //Act and Assert
       await expect(service.memberValidate(dto)).rejects.toThrow(BadRequestException);
       expect(authService.jwtLogIn).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * 마이페이지 첫화면 데이터 조회 정책
+   * 1. 성공case : 사용자의 닉네임, 프로필이미지, 리뷰갯수, 토탈 포인트를 조회한다.
+   * 2. 토탈 포인트, 리뷰가 없을 경우 0으로 반환한다.
+   * 3. 리뷰 이미지가 없을 경우 반환하지 않는다.
+   */
+  describe('myPageOverview', () => {
+    const dto: MemberIdDto = { memberId: 1 };
+    it('성공case : 사용자의 닉네임, 프로필이미지, 리뷰갯수, 토탈 포인트를 조회한다.', async () => {
+      //Arrange
+      const member = {
+        nickName: 'testNick',
+        profileImgMiddlePath: 'profileImgMiddlePath',
+        profileImgId: 1,
+        profileImgPath: 'profileImgPath',
+        profileImgExtension: '.jpg',
+      };
+      const usersReviewCount: number = 5;
+      const usersPoint: Point = { totalPoint: 25 } as Point;
+      const usersTotalPoint: number = usersPoint ? usersPoint.totalPoint : 0;
+      repository.findMemberProfile.mockResolvedValue(member);
+      repository.countReview.mockResolvedValue(usersReviewCount);
+      repository.findTotalPointOne.mockResolvedValue(usersPoint);
+
+      //Act
+      const result = await service.myPageOverview(dto);
+
+      //Assert
+      expect(repository.findMemberProfile).toHaveBeenCalledWith(dto);
+      expect(repository.countReview).toHaveBeenCalledWith(dto);
+      expect(repository.findTotalPointOne).toHaveBeenCalledWith(dto);
+      expect(result).toEqual({
+        nickName: member.nickName,
+        profileImgMiddlePath: member.profileImgMiddlePath,
+        profileImgId: member.profileImgId,
+        profileImgPath: member.profileImgPath,
+        profileImgExtension: member.profileImgExtension,
+        usersReviewCount,
+        usersTotalPoint,
+      });
+    });
+    it('토탈 포인트, 리뷰가 없을 경우 0으로 반환한다.', async () => {
+      //Arrange
+      const member = {
+        nickName: 'testNick',
+        profileImgMiddlePath: 'profileImgMiddlePath',
+        profileImgId: 1,
+        profileImgPath: 'profileImgPath',
+        profileImgExtension: '.jpg',
+      };
+
+      const usersReviewCount: number = 0;
+      const usersPoint: Point = null;
+      repository.findMemberProfile.mockResolvedValue(member);
+      repository.countReview.mockResolvedValue(usersReviewCount);
+      repository.findTotalPointOne.mockResolvedValue(usersPoint);
+
+      //Act
+      const result = await service.myPageOverview(dto);
+
+      //Assert
+      expect(repository.findMemberProfile).toHaveBeenCalledWith(dto);
+      expect(repository.countReview).toHaveBeenCalledWith(dto);
+      expect(repository.findTotalPointOne).toHaveBeenCalledWith(dto);
+      expect(result).toEqual({
+        nickName: member.nickName,
+        profileImgMiddlePath: member.profileImgMiddlePath,
+        profileImgId: member.profileImgId,
+        profileImgPath: member.profileImgPath,
+        profileImgExtension: member.profileImgExtension,
+        usersReviewCount,
+        usersTotalPoint: 0,
+      });
+    });
+    it('리뷰 이미지가 없을 경우 반환하지 않는다.', async () => {
+      //Arrange
+      const member = { nickName: 'testNick' };
+      const usersReviewCount: number = 0;
+      const usersPoint: Point = null;
+      repository.findMemberProfile.mockResolvedValue(member);
+      repository.countReview.mockResolvedValue(usersReviewCount);
+      repository.findTotalPointOne.mockResolvedValue(usersPoint);
+
+      //Act
+      const result = await service.myPageOverview(dto);
+
+      //Assert
+      expect(repository.findMemberProfile).toHaveBeenCalledWith(dto);
+      expect(repository.countReview).toHaveBeenCalledWith(dto);
+      expect(repository.findTotalPointOne).toHaveBeenCalledWith(dto);
+      expect(result).toEqual({
+        nickName: member.nickName,
+        usersReviewCount,
+        usersTotalPoint: 0,
+      });
     });
   });
 });
