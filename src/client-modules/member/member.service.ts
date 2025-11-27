@@ -20,6 +20,7 @@ import * as path from 'path';
 import { FileTransService } from 'src/config/file/filetrans.service';
 import dayjs from 'dayjs';
 import { Point } from 'src/config/entities/point.entity';
+import { Member } from 'src/config/entities/member.entity';
 
 @Injectable()
 export class MemberService {
@@ -36,19 +37,19 @@ export class MemberService {
   @Transactional()
   async memberSignIn(signInDto: SignInDto) {
     try {
-      const isEmail = await this.memberRepository.findEmailOne(signInDto.memberEmail);
-      const isSnsId = await this.memberRepository.findSnsIdOne(signInDto.snsId);
+      const isEmail: Member = await this.memberRepository.findEmailOne(signInDto.memberEmail);
+      const isSnsId: Member = await this.memberRepository.findSnsIdOne(signInDto.snsId);
 
       if (!isEmail && !isSnsId) {
         const pickedDCList = [];
 
         const newMember = await this.memberRepository.insertMember(signInDto);
-        const newMemberId = newMember.identifiers[0].memberId;
-        const nickName = `${newMemberId}번째 달콤한 디저트`;
+        const newMemberId: number = newMember.identifiers[0].memberId;
+        const nickName: string = `${newMemberId}번째 달콤한 디저트`;
 
         await this.memberRepository.updateMemberNickname(newMemberId, nickName);
 
-        const categories = [signInDto.memberPickCategory1, signInDto.memberPickCategory2, signInDto.memberPickCategory3, signInDto.memberPickCategory4, signInDto.memberPickCategory5].filter(
+        const categories: number[] = [signInDto.memberPickCategory1, signInDto.memberPickCategory2, signInDto.memberPickCategory3, signInDto.memberPickCategory4, signInDto.memberPickCategory5].filter(
           (category) => category !== undefined,
         );
         categories.forEach((category) => {
@@ -83,7 +84,7 @@ export class MemberService {
   @Transactional()
   async memberValidate(userValidationDto: UserValidationDto) {
     try {
-      const memberData = await this.memberRepository.memberValidate(userValidationDto);
+      const memberData: Member = await this.memberRepository.memberValidate(userValidationDto);
 
       if (!memberData) {
         throw new BadRequestException('미등록정보', {
