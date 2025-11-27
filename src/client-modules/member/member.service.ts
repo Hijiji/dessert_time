@@ -114,8 +114,8 @@ export class MemberService {
     try {
       const member = await this.memberRepository.findMemberProfile(memberIdDto);
       const usersReviewCount: number = await this.memberRepository.countReview(memberIdDto);
-      const usersPoint: Point = await this.memberRepository.findTotalPointOne(memberIdDto);
-      const usersTotalPoint: number = usersPoint ? usersPoint.totalPoint : 0;
+      const usersPoint = await this.memberRepository.findTotalPointOne(memberIdDto);
+      const usersTotalPoint: number = usersPoint ? usersPoint[0].totalPoint : 0;
       return {
         nickName: member.nickName,
         profileImgId: member.profileImgId,
@@ -361,7 +361,7 @@ export class MemberService {
       const thisMonthPointData = await this.memberRepository.findThisMonthPoint(memberIdDto);
       const totalPointData = await this.memberRepository.findTotalPointOne(memberIdDto);
       const thisMonthPoint = !thisMonthPointData.totalPoint ? 0 : thisMonthPointData.totalPoint;
-      const totalPoint = !totalPointData ? 0 : !totalPointData.totalPoint ? 0 : totalPointData.totalPoint;
+      const totalPoint = !totalPointData ? 0 : !totalPointData[0].totalPoint ? 0 : totalPointData[0].totalPoint;
       const result = {
         thisMonthPoint,
         totalPoint,

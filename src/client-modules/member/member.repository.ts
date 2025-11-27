@@ -217,7 +217,7 @@ export class MemberRepository {
    * @returns
    */
   async findTotalPointOne(memberIdDto: MemberIdDto) {
-    return await this.pointRepository.findOne({ select: { totalPoint: true }, where: { member: { memberId: memberIdDto.memberId } } });
+    return await this.pointRepository.find({ select: { totalPoint: true }, where: { member: { memberId: memberIdDto.memberId } } });
   }
 
   /**
