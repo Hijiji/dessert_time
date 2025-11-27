@@ -19,6 +19,8 @@ import { AuthService } from 'src/config/auth/auth.service';
 import * as path from 'path';
 import { FileTransService } from 'src/config/file/filetrans.service';
 import dayjs from 'dayjs';
+import { Point } from 'src/config/entities/point.entity';
+import { Member } from 'src/config/entities/member.entity';
 
 @Injectable()
 export class MemberService {
@@ -35,19 +37,19 @@ export class MemberService {
   @Transactional()
   async memberSignIn(signInDto: SignInDto) {
     try {
-      const isEmail = await this.memberRepository.findEmailOne(signInDto.memberEmail);
-      const isSnsId = await this.memberRepository.findSnsIdOne(signInDto.snsId);
+      const isEmail: Member = await this.memberRepository.findEmailOne(signInDto.memberEmail);
+      const isSnsId: Member = await this.memberRepository.findSnsIdOne(signInDto.snsId);
 
       if (!isEmail && !isSnsId) {
         const pickedDCList = [];
 
         const newMember = await this.memberRepository.insertMember(signInDto);
-        const newMemberId = newMember.identifiers[0].memberId;
-        const nickName = `${newMemberId}번째 달콤한 디저트`;
+        const newMemberId: number = newMember.identifiers[0].memberId;
+        const nickName: string = `${newMemberId}번째 달콤한 디저트`;
 
         await this.memberRepository.updateMemberNickname(newMemberId, nickName);
 
-        const categories = [signInDto.memberPickCategory1, signInDto.memberPickCategory2, signInDto.memberPickCategory3, signInDto.memberPickCategory4, signInDto.memberPickCategory5].filter(
+        const categories: number[] = [signInDto.memberPickCategory1, signInDto.memberPickCategory2, signInDto.memberPickCategory3, signInDto.memberPickCategory4, signInDto.memberPickCategory5].filter(
           (category) => category !== undefined,
         );
         categories.forEach((category) => {
@@ -82,7 +84,7 @@ export class MemberService {
   @Transactional()
   async memberValidate(userValidationDto: UserValidationDto) {
     try {
-      const memberData = await this.memberRepository.memberValidate(userValidationDto);
+      const memberData: Member = await this.memberRepository.memberValidate(userValidationDto);
 
       if (!memberData) {
         throw new BadRequestException('미등록정보', {
@@ -111,10 +113,9 @@ export class MemberService {
   async myPageOverview(memberIdDto: MemberIdDto) {
     try {
       const member = await this.memberRepository.findMemberProfile(memberIdDto);
-      console.log('member ::', member);
-      const usersReviewCount = await this.memberRepository.countReview(memberIdDto);
-      const usersPoint = await this.memberRepository.findTotalPointOne(memberIdDto);
-      const usersTotalPoint = usersPoint[0] ? usersPoint[0].totalPoint : 0;
+      const usersReviewCount: number = await this.memberRepository.countReview(memberIdDto);
+      const usersPoint: Point = await this.memberRepository.findTotalPointOne(memberIdDto);
+      const usersTotalPoint: number = usersPoint ? usersPoint.totalPoint : 0;
       return {
         nickName: member.nickName,
         profileImgId: member.profileImgId,
@@ -360,7 +361,7 @@ export class MemberService {
       const thisMonthPointData = await this.memberRepository.findThisMonthPoint(memberIdDto);
       const totalPointData = await this.memberRepository.findTotalPointOne(memberIdDto);
       const thisMonthPoint = !thisMonthPointData.totalPoint ? 0 : thisMonthPointData.totalPoint;
-      const totalPoint = !totalPointData[0] ? 0 : !totalPointData[0].totalPoint ? 0 : totalPointData[0].totalPoint;
+      const totalPoint = !totalPointData ? 0 : !totalPointData.totalPoint ? 0 : totalPointData.totalPoint;
       const result = {
         thisMonthPoint,
         totalPoint,
