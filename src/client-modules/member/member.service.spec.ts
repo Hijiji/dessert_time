@@ -9,6 +9,7 @@ import { addAbortListener } from 'events';
 import { SignInDto } from './dto/signin.dto';
 import { InsertResult } from 'typeorm';
 import { UserValidationDto } from './dto/login.dto';
+import { BadRequestException } from '@nestjs/common';
 
 initializeTransactionalContext();
 jest.mock('typeorm-transactional', () => ({
@@ -106,7 +107,7 @@ describe('MemberService', () => {
       repository.findEmailOne.mockResolvedValue(member);
       repository.findSnsIdOne.mockResolvedValue(member);
       //Act & Assert
-      await expect(service.memberSignIn(dto)).rejects.toThrow();
+      await expect(service.memberSignIn(dto)).rejects.toThrow(BadRequestException);
       expect(repository.findEmailOne).toHaveBeenCalledWith(dto.memberEmail);
       expect(repository.findSnsIdOne).toHaveBeenCalledWith(dto.snsId);
       expect(repository.insertMember).not.toHaveBeenCalled();
@@ -134,6 +135,14 @@ describe('MemberService', () => {
       expect(repository.memberValidate).toHaveBeenCalledWith(dto);
       expect(authService.jwtLogIn).toHaveBeenCalledWith(memberData);
       expect(result).toEqual({ memberId: memberData.memberId, nickName: memberData.nickName, token: token.token });
+    });
+
+    it('등록되지 않은 사용자일 경우 BadRequestException 반환', async () => {
+      //Arrange
+      repository.memberValidate(null);
+      //Act and Assert
+      await expect(service.memberValidate(dto)).rejects.toThrow(BadRequestException);
+      expect(authService.jwtLogIn).not.toHaveBeenCalled();
     });
   });
 });
