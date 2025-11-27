@@ -33,13 +33,16 @@ export class FileTransController {
     return { url };
   }
 
-  @Get()
+  @Get('download')
   @ApiOperation({ summary: '파일 다운로드', description: '클라우드 스토리지에서 파일을 다운로드합니다.' })
   async cloudDownloadFile(@Query('middlePath') middlePath: string, @Query('path') path: string, @Res() res: Response) {
     const file = await this.fileService.download(path, middlePath);
+
+    const fileName = `${middlePath}/${path}`; // 다운로드 시 보일 실제 파일명
+
     res.set({
       'Content-Type': 'application/octet-stream',
-      'Content-Disposition': `attachment; filename="${middlePath}/${path}"`,
+      'Content-Disposition': `attachment; filename="${fileName}"`,
     });
     res.send(file);
   }
