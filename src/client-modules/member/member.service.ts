@@ -113,6 +113,7 @@ export class MemberService {
   async myPageOverview(memberIdDto: MemberIdDto) {
     try {
       const member = await this.memberRepository.findMemberProfile(memberIdDto);
+      if (!member) return {};
       const usersReviewCount: number = await this.memberRepository.countReview(memberIdDto);
       const usersPoint = await this.memberRepository.findTotalPointOne(memberIdDto);
       const usersTotalPoint: number = usersPoint ? usersPoint[0].totalPoint : 0;
