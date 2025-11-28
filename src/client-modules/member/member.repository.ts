@@ -208,7 +208,7 @@ export class MemberRepository {
    * @returns
    */
   async countReview(memberIdDto: MemberIdDto) {
-    return await this.reviewRepository.count({ where: { member: { memberId: memberIdDto.memberId } } });
+    return await this.reviewRepository.count({ where: { member: { memberId: memberIdDto.memberId }, isUsable: true } });
   }
 
   /**
