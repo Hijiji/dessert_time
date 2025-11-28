@@ -172,8 +172,8 @@ describe('MemberService', () => {
         profileImgExtension: '.jpg',
       };
       const usersReviewCount: number = 5;
-      const usersPoint: Point = { totalPoint: 25 } as Point;
-      const usersTotalPoint: number = usersPoint ? usersPoint.totalPoint : 0;
+      const usersPoint: Point[] = [{ totalPoint: 25 } as Point];
+      const usersTotalPoint: number = usersPoint ? usersPoint[0].totalPoint : 0;
       repository.findMemberProfile.mockResolvedValue(member);
       repository.countReview.mockResolvedValue(usersReviewCount);
       repository.findTotalPointOne.mockResolvedValue(usersPoint);
@@ -206,7 +206,7 @@ describe('MemberService', () => {
       };
 
       const usersReviewCount: number = 0;
-      const usersPoint: Point = null;
+      const usersPoint: Point[] = null;
       repository.findMemberProfile.mockResolvedValue(member);
       repository.countReview.mockResolvedValue(usersReviewCount);
       repository.findTotalPointOne.mockResolvedValue(usersPoint);
@@ -232,7 +232,7 @@ describe('MemberService', () => {
       //Arrange
       const member = { nickName: 'testNick' };
       const usersReviewCount: number = 0;
-      const usersPoint: Point = null;
+      const usersPoint: Point[] = null;
       repository.findMemberProfile.mockResolvedValue(member);
       repository.countReview.mockResolvedValue(usersReviewCount);
       repository.findTotalPointOne.mockResolvedValue(usersPoint);
@@ -249,6 +249,82 @@ describe('MemberService', () => {
         usersReviewCount,
         usersTotalPoint: 0,
       });
+    });
+  });
+
+  /**
+   * 사용자 정보 조회
+   * 1. 사용자 정보조회 성공 [카테고리목록, 성별, 닉네임, 생년, 프로필 이미지, 거주지]
+   * 2. 카테고리가 2개 이상일 경우, 다른 정보는 중복되지 않게, 카테고리 정보 데이터 리스트화
+   * 3. 존재하지 않는 사용자일 경우 빈 값 반환
+   */
+  describe('getMemberOne', () => {
+    const dto: MemberIdDto = { memberId: 1 };
+    it('사용자 정보 조회 성공 case', async () => {
+      //Arrange
+      const memberData = [
+        {
+          memberId: 1,
+          gender: 'F',
+          nickName: '2번째냠',
+          birthYear: 1111,
+          firstCity: '서울',
+          secondaryCity: '중랑구',
+          thirdCity: '망우로',
+          profileImgMiddlePath: 'middle/2024',
+          profileImgId: 1,
+          profileImgPath: 'wqeweq',
+          profileImgExtension: '.png',
+          dessertCategoryId: 1,
+          dessertName: '22',
+        },
+        {
+          memberId: 1,
+          gender: 'F',
+          nickName: '2번째냠',
+          birthYear: 1111,
+          firstCity: '서울',
+          secondaryCity: '중랑구',
+          thirdCity: '망우로',
+          profileImgMiddlePath: 'middle/2024',
+          profileImgId: 1,
+          profileImgPath: 'wqeweq',
+          profileImgExtension: '.png',
+          dessertCategoryId: 2,
+          dessertName: '44',
+        },
+      ];
+      repository.findMemberOne.mockResolvedValue(memberData);
+      //Act
+      const result = await service.getMemberOne(dto);
+      //Assert
+      expect(repository.findMemberOne).toHaveBeenCalledWith(dto);
+      expect(result).toEqual({
+        memberId: 1,
+        gender: 'F',
+        nickName: '2번째냠',
+        birthYear: 1111,
+        firstCity: '서울',
+        secondaryCity: '중랑구',
+        thirdCity: '망우로',
+        profileImgMiddlePath: 'middle/2024',
+        profileImgId: 1,
+        profileImgPath: 'wqeweq',
+        profileImgExtension: '.png',
+        desserts: [
+          { dessertCategoryId: 1, dessertName: '22' },
+          { dessertCategoryId: 2, dessertName: '44' },
+        ],
+      });
+    });
+    it('존재하지 않는 사용자 조회시 빈값 반환', async () => {
+      //Arrange
+      repository.findMemberOne.mockResolvedValue([]);
+      //Act
+      const result = await service.getMemberOne(dto);
+      //Assert
+      expect(repository.findMemberOne).toHaveBeenCalledWith(dto);
+      expect(result).toEqual({});
     });
   });
 });
