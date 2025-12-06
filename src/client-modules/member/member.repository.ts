@@ -382,10 +382,7 @@ export class MemberRepository {
    * @returns
    */
   async findMemberImg(memberId) {
-    return await this.profileImgRepository.findOne({
-      select: { path: true, middlePath: true },
-      where: { member: { memberId: memberId } },
-    });
+    return await this.profileImgRepository.createQueryBuilder('pi').select(['pi.path', 'pi.middlePath']).leftJoin('pi.member', 'm').where('m.memberId = :id', { id: memberId }).getOne();
   }
 
   /**
