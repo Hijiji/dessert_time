@@ -82,7 +82,7 @@ export class MemberController {
       },
     },
   })
-  @UseInterceptors(FileInterceptor('file', multerOptionsFactory('useImg')))
+  @UseInterceptors(FileInterceptor('file', multerOptionsFactory('userImg')))
   @ApiOperation({ summary: '마이페이지 - 사용자 이미지 수정하기' })
   @Patch('/my-page/img/:memberId')
   async patchMemberImg(@UploadedFile() file: Express.Multer.File, @Param() memberIdDto: MemberIdDto) {

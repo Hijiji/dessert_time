@@ -239,12 +239,13 @@ export class MemberService {
       }
 
       const extention = path.extname(file.originalname); // 파일 확장자 추출
-      const imgName = path.basename(file.originalname, extention); // 파일 이름
+      let imgName = path.basename(file.originalname, extention); // 파일 이름
+      imgName = Buffer.from(imgName, 'ascii').toString('utf8');
 
       file.originalname = Buffer.from(file.originalname, 'ascii').toString('utf8');
-      const lastpath = this.fileService.generateFilename(file.originalname);
+      const lastpath = await this.fileService.generateFilename(file.originalname);
       const today = dayjs().format('YYYYMMDD');
-      const middlePath = `useImg/${today}`;
+      const middlePath = `userImg/${today}`;
 
       const fileData = {
         imgName,
@@ -252,11 +253,12 @@ export class MemberService {
         middlePath,
         path: lastpath,
       };
+
       //클라우드 스토리지에 파일 업로드
       await this.fileService.upload(file, lastpath, middlePath);
 
       const savedData = await this.memberRepository.upsertMemberImg(fileData, memberIdDto);
-      return { memberImgId: savedData['raw']?.[0]?.profileImgId };
+      return { memberImgId: savedData.profileImgId };
     } catch (error) {
       throw error;
     }
