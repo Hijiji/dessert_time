@@ -346,7 +346,8 @@ export class ReviewService {
       });
     }
     const extention = path.extname(file.originalname);
-    const imgName = path.basename(file.originalname, extention);
+    let imgName = path.basename(file.originalname, extention); // 파일 이름
+    imgName = Buffer.from(imgName, 'ascii').toString('utf8');
 
     file.originalname = Buffer.from(file.originalname, 'ascii').toString('utf8');
     const lastpath = await this.fileService.generateFilename(file.originalname);
@@ -359,7 +360,7 @@ export class ReviewService {
       middlePath,
       path: lastpath,
     };
-    console.log('fileData :::::::::::', fileData);
+
     //클라우드 스토리지에 파일 업로드
     await this.fileService.upload(file, lastpath, middlePath);
 
